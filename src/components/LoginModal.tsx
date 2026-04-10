@@ -1,17 +1,17 @@
 // src/components/LoginModal.tsx
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { authService } from '@/services/auth';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { authService } from "@/services/auth";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -20,28 +20,28 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const token = await authService.login(username, password);
-      onSuccess(token);
+      onSuccess(token); // This will be handled in Layout
       onClose();
-      
+
       // Clear form
-      setUsername('');
-      setPassword('');
+      setUsername("");
+      setPassword("");
     } catch (err) {
-      setError('Invalid username or password');
-      console.error('Login error:', err);
+      setError("Invalid username or password");
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -49,12 +49,12 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
   const handleForgotPassword = () => {
     // TODO: Implement forgot password
-    console.log('Forgot password clicked');
+    console.log("Forgot password clicked");
   };
 
   const handleSignUp = () => {
     // TODO: Implement sign up
-    console.log('Sign up clicked');
+    console.log("Sign up clicked");
   };
 
   return (
@@ -93,7 +93,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <div className="relative">
               <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -114,7 +114,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 )}
               </button>
             </div>
-            
+
             {/* Forgot Password Link */}
             <div className="flex justify-end">
               <button
@@ -135,24 +135,20 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           )}
 
           {/* Submit Button */}
-          <Button 
-            type="submit" 
-            className="w-full h-11" 
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full h-11" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Logging in...
               </>
             ) : (
-              'Login'
+              "Login"
             )}
           </Button>
 
           {/* Sign Up Link */}
           <div className="text-center text-sm text-muted-foreground pt-2">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <button
               type="button"
               onClick={handleSignUp}

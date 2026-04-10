@@ -5,18 +5,21 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { Header } from './Header';
 import { LoginModal } from './LoginModal';
 import { sseManager } from '@/services/sseManager';
+import { useAuthStore } from '@/store/authStore';
 
 export function Layout() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingFeature, setPendingFeature] = useState<string | null>(null);
-  const navigate = useNavigate();
+  
+  // Use auth store
+  const { token, isAuthenticated, login, logout } = useAuthStore();
 
-  const handleLoginSuccess = (token: string) => {
-    setIsLoggedIn(true);
+  const handleLoginSuccess = (newToken: string) => {
+    login(newToken);  // Save to store
     
     // Connect SSE for real-time notifications
-    sseManager.connect(token);
+    sseManager.connect(newToken);
     
     // If user was trying to access a feature, navigate to it
     if (pendingFeature) {
@@ -30,7 +33,7 @@ export function Layout() {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    logout();  // Clear from store
     
     // Disconnect SSE
     sseManager.disconnect();
@@ -53,7 +56,7 @@ export function Layout() {
   const handleFeatureClick = (featureId: string) => {
     console.log('Feature clicked:', featureId);
     
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       // Save which feature they wanted
       setPendingFeature(featureId);
       // Show login modal
@@ -67,7 +70,7 @@ export function Layout() {
   return (
     <>
       <Header
-        isLoggedIn={isLoggedIn}
+        isLoggedIn={isAuthenticated}
         onLoginClick={handleLogin}
         onLogoutClick={handleLogout}
         onNotificationsClick={handleNotificationsClick}
