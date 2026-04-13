@@ -71,8 +71,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
 
   // Get job by backend jobId
+  // getJobByJobId: (jobId) => {
+  //   return get().jobs.find((job) => job.jobId === jobId);
+  // },
   getJobByJobId: (jobId) => {
-    return get().jobs.find((job) => job.jobId === jobId);
+    const jobs = get().jobs; // Force subscription
+    return jobs.find((job) => job.jobId === jobId); // ← Correct: job.jobId
   },
 
   // Get active jobs (pending or processing)

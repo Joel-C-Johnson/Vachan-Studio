@@ -18,9 +18,9 @@ export function Layout() {
   const handleLoginSuccess = (newToken: string) => {
     login(newToken);  // Save to store
     
-    // Connect SSE for real-time notifications
-    sseManager.connect(newToken);
-    
+    // TODO: Re-enable when backend fixes CORS for SSE
+    // sseManager.connect(newToken);
+
     // If user was trying to access a feature, navigate to it
     if (pendingFeature) {
       navigate(`/${pendingFeature}`);

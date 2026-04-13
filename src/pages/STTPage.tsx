@@ -1,17 +1,35 @@
-// src/pages/STTPage.tsx
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useJobStore } from '@/store/jobStore';
+import { useSSESync } from '@/hooks/useSSESync';
 import { FeatureLayout } from '@/components/FeatureLayout';
 import { SplitView } from '@/components/SplitView';
 import { AudioInput } from '@/components/AudioInput';
 import { STTSettings } from '@/components/STTSettings';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authStore';
+import { aiEngineService } from '@/services/aiEngine';
+import { Loader2 } from 'lucide-react';
 
 export function STTPage() {
   const [showOutput, setShowOutput] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [viewMode, setViewMode] = useState<'horizontal' | 'vertical'>('horizontal');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<number | null>(null);
+  const [transcriptionResult, setTranscriptionResult] = useState<string>('');
+
+  // Get token from auth store
+  const { token } = useAuthStore();
+  // Initialize SSE sync
+  useSSESync(token);
+
+  // Get job store methods
+  // const { addJob, getJobByJobId } = useJobStore();
+  const addJob = useJobStore((state) => state.addJob);
+  const currentJob = useJobStore((state) => 
+    currentJobId ? state.getJobByJobId(currentJobId) : undefined
+  );
 
   // Settings state
   const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -25,7 +43,7 @@ export function STTPage() {
     console.log('File selected:', file.name, file.size);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedFile) {
       alert('Please upload or record an audio file first');
       return;
@@ -36,25 +54,64 @@ export function STTPage() {
       return;
     }
 
-    // Prepare API payload
-    const payload = {
-      file: selectedFile,
-      model_name: selectedModel,
-      transcription_language: selectedLanguage,
-      device: device,
-      generate_timestamp: generateTimestamp,
-      timestamp_file_format: generateTimestamp ? timestampFormat : undefined
-    };
+    if (!token) {
+      alert('Please login first');
+      return;
+    }
 
-    console.log('Submitting with payload:', payload);
+    setIsSubmitting(true);
 
-    // TODO: Call API to submit job
-    // For now, just show output
-    setShowOutput(true);
-    setHasSubmitted(true);
+    try {
+      // Submit job to API
+      const jobId = await aiEngineService.submitSTTJob(
+        selectedFile,
+        token,
+        {
+          model_name: selectedModel,
+          transcription_language: selectedLanguage,
+          device: device,
+          generate_timestamp: generateTimestamp,
+          timestamp_file_format: generateTimestamp ? timestampFormat : undefined,
+        }
+      );
+
+      console.log('Job submitted successfully! Job ID:', jobId);
+
+      // Add job to store
+      addJob({
+        jobId,
+        type: 'stt',
+        status: 'pending',
+        input: {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          params: {
+            language: selectedLanguage,
+            model: selectedModel,
+          }
+        }
+      });
+
+      // Store job ID
+      setCurrentJobId(jobId);
+
+      // Show output section with "Processing..." state
+      setShowOutput(true);
+      setHasSubmitted(true);
+      setTranscriptionResult(''); // Clear previous result
+
+      // TODO: SSE will notify us when complete (Phase 2)
+      // For now, we can poll or wait for SSE notification
+
+    } catch (error) {
+      console.error('Failed to submit job:', error);
+      alert(`Failed to submit transcription job: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const canSubmit = selectedFile && selectedLanguage;
+  const canSubmit = selectedFile && selectedLanguage && !isSubmitting;
 
   // Settings content for right panel
   const settingsContent = (
@@ -84,9 +141,18 @@ export function STTPage() {
               size="lg"
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="min-w-[200px]"
+              className="min-w-50"
             >
-              {!selectedLanguage ? 'Select Language First' : 'Transcribe Audio'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : !selectedLanguage ? (
+                'Select Language First'
+              ) : (
+                'Transcribe Audio'
+              )}
             </Button>
           </div>
         )}
@@ -98,27 +164,65 @@ export function STTPage() {
   const outputContent = showOutput ? (
     <div className="h-full p-6">
       <div className="h-full border rounded-lg p-6 bg-muted/30">
-        <h3 className="font-semibold mb-4">Transcribed Text</h3>
-        <div className="space-y-2">
-          <p className="text-sm">
-            This is a dummy transcription output. The actual transcribed text will appear here 
-            after the STT job completes.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Selected Language: {selectedLanguage}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Model: {selectedModel}
-          </p>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Transcribed Text</h3>
+          {currentJobId && (
+            <span className="text-xs text-muted-foreground">
+              Job ID: {currentJobId}
+            </span>
+          )}
         </div>
-        
-        <div className="mt-6 flex gap-2">
-          <Button variant="outline" size="sm">Copy</Button>
-          <Button variant="outline" size="sm">Download</Button>
-        </div>
+
+        {transcriptionResult ? (
+          // Show actual result
+          <div className="space-y-4">
+            <div className="p-4 bg-background rounded-lg">
+              <p className="text-sm whitespace-pre-wrap">{transcriptionResult}</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">Copy</Button>
+              <Button variant="outline" size="sm">Download</Button>
+            </div>
+          </div>
+        ) : (
+          // Show processing state
+          <div className="flex flex-col items-center justify-center h-full space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-center">
+              <p className="text-sm font-medium">Processing your audio...</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                This may take a few moments. You can switch to other features while waiting.
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>• Language: {selectedLanguage}</p>
+              <p>• Model: {selectedModel}</p>
+              <p>• Device: {device.toUpperCase()}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   ) : null;
+
+  // Watch for job completion
+  // useEffect(() => {
+  //   if (currentJobId) {
+  //     const job = getJobByJobId(currentJobId);
+  //     if (job?.output?.transcribedText) {
+  //       setTranscriptionResult(job.output.transcribedText);
+  //     }
+  //   }
+  // }, [currentJobId, getJobByJobId]);
+
+  // Watch for job completion
+  useEffect(() => {
+    if (currentJob?.output?.transcribedText) {
+      console.log('Updating UI with transcription:', currentJob.output.transcribedText);
+      setTranscriptionResult(currentJob.output.transcribedText);
+    }
+  }, [currentJob]);
 
   return (
     <FeatureLayout
