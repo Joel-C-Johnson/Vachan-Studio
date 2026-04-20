@@ -74,8 +74,8 @@ export function STTPage() {
   useSSESync(token);
 
   // Get job store methods
-  // const { addJob, getJobByJobId } = useJobStore();
   const addJob = useJobStore((state) => state.addJob);
+  const updateJobByJobId = useJobStore((state) => state.updateJobByJobId);
   const currentJob = useJobStore((state) =>
     currentJobId ? state.getJobByJobId(currentJobId) : undefined,
   );
@@ -594,6 +594,34 @@ export function STTPage() {
               <p>• Model: {selectedModel}</p>
               <p>• Device: {device.toUpperCase()}</p>
             </div>
+
+            {/* Cancel Button */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Update job status in store to stop polling
+                if (currentJobId) {
+                  updateJobByJobId(currentJobId, {
+                    status: "failed",
+                    completedAt: Date.now(),
+                    error: "Cancelled by user",
+                  });
+                }
+
+                // Reset UI state
+                setShowOutput(false);
+                setCurrentJobId(null);
+                setTranscriptionResult("");
+                setSrtText(null);
+                setSettingsChanged(false);
+
+                // Show toast
+                toast.info("Transcription cancelled");
+              }}
+              className="mt-4 min-w-[200px] text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 cursor-pointer"
+            >
+              Cancel Transcription
+            </Button>
           </div>
         )}
       </div>
