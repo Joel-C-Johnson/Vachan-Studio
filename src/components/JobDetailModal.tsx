@@ -12,6 +12,8 @@ import {
   Highlighter,
   Play,
   Pause,
+  Save,
+  SaveOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/jobStore";
+import { countSavedJobs } from "@/services/indexedDB";
 
 interface JobDetailModalProps {
   job: Job | null;
@@ -43,6 +46,14 @@ interface JobDetailModalProps {
 }
 
 export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
+  // Watch the store for live updates to this job
+  const liveJob = useJobStore((state) =>
+    state.jobs.find((j) => j.id === job?.id),
+  );
+
+  // Use live job data if available, fallback to prop
+  const currentJobData = liveJob || job;
+
   const [transcriptionText, setTranscriptionText] = useState("");
   const [srtText, setSrtText] = useState<string | null>(null);
   const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(
@@ -58,17 +69,18 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
   const wavesurfer = useRef<WaveSurfer | null>(null);
 
   const updateJobByJobId = useJobStore((state) => state.updateJobByJobId);
+  const toggleJobSavedStore = useJobStore((state) => state.toggleJobSaved);
 
   // Initialize WaveSurfer when modal opens
   useEffect(() => {
     console.log("🎵 WaveSurfer useEffect triggered:", {
       isOpen,
-      hasAudioBlob: !!job?.input.audioBlob,
+      hasAudioBlob: !!currentJobData?.input.audioBlob,
       hasWaveformRef: !!waveformRef.current,
       hasWavesurfer: !!wavesurfer.current,
     });
 
-    if (!isOpen || !job?.input.audioBlob) {
+    if (!isOpen || !currentJobData?.input.audioBlob) {
       return;
     }
 
@@ -105,12 +117,12 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
           barGap: 2,
         });
 
-        if (!job.input.audioBlob) {
+        if (!currentJobData.input.audioBlob) {
           isInitializing = false;
           return;
         }
 
-        const url = URL.createObjectURL(job.input.audioBlob);
+        const url = URL.createObjectURL(currentJobData.input.audioBlob);
         console.log("📂 Loading audio from URL:", url);
         wavesurfer.current.load(url);
 
@@ -147,17 +159,17 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
         setWavesurferInstance(null);
       }
     };
-  }, [isOpen, job?.input.audioBlob]);
+  }, [isOpen, currentJobData?.input.audioBlob]);
 
   // Update state when job changes
   useEffect(() => {
-    if (job) {
-      setTranscriptionText(job.output?.transcribedText || "");
-      setSrtText(job.output?.srtText || null);
+    if (currentJobData) {
+      setTranscriptionText(currentJobData.output?.transcribedText || "");
+      setSrtText(currentJobData.output?.srtText || null);
       setIsEditing(false);
       setEditedText("");
     }
-  }, [job]);
+  }, [currentJobData]);
 
   if (!job) return null;
 
@@ -172,13 +184,16 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
 
   const handleEditSave = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!currentJobData) return; // Add null check
+
     setTranscriptionText(editedText);
     setIsEditing(false);
     setSrtText(null);
 
-    updateJobByJobId(job.jobId, {
+    updateJobByJobId(currentJobData.jobId, {
       output: {
-        ...job.output,
+        ...currentJobData.output,
         transcribedText: editedText,
         srtText: undefined,
       },
@@ -200,7 +215,30 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
     }
   };
 
-  const supportsHighlighting = job.input.params?.model === "mms-1b-all";
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentJobData) return; // Add null check
+    const wasSaved = currentJobData.saved; // Store BEFORE toggle
+
+    // Check if trying to save and already at limit
+    if (!wasSaved) {
+      const savedCount = await countSavedJobs();
+      if (savedCount >= 10) {
+        toast.error(
+          "Maximum 10 saved files allowed. Please remove a file first.",
+        );
+        return;
+      }
+    }
+
+    await toggleJobSavedStore(currentJobData.id);
+
+    // Show opposite of what it WAS
+    toast.success(wasSaved ? "File unsaved" : "File saved!");
+  };
+
+  const supportsHighlighting =
+    currentJobData?.input.params?.model === "mms-1b-all";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -212,8 +250,8 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
           <DialogTitle>
             <div>
               <h2 className="text-xl font-semibold">Transcription</h2>
-              <p className="text-sm text-muted-foreground font-normal mt-1">
-                {job.input.fileName}
+              <p className="text-sm text-muted-foreground m-1">
+                {currentJobData?.input.fileName}
               </p>
             </div>
           </DialogTitle>
@@ -222,7 +260,7 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
           {/* Audio Player */}
-          {job.input.audioBlob && (
+          {currentJobData?.input.audioBlob && (
             <div className="border rounded-lg p-4 space-y-3 mt-6">
               <div ref={waveformRef} className="w-full" />
               <div className="flex items-center gap-2">
@@ -330,7 +368,7 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement("a");
                             a.href = url;
-                            a.download = `${job.input.fileName}_transcription.txt`;
+                            a.download = `${currentJobData?.input.fileName}_transcription.txt`;
                             a.click();
                             URL.revokeObjectURL(url);
                           }}
@@ -357,6 +395,27 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Edit</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Save/Unsave */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 cursor-pointer"
+                          onClick={handleToggleSave}
+                        >
+                          {currentJobData?.saved ? (
+                            <SaveOff className="h-4 w-4" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{currentJobData?.saved ? "Unsave" : "Save"}</p>
                       </TooltipContent>
                     </Tooltip>
 
@@ -444,19 +503,25 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
                                   <span className="text-muted-foreground">
                                     Job ID:
                                   </span>
-                                  <span className="font-mono">{job.jobId}</span>
+                                  <span>
+                                    {currentJobData?.jobId}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
                                     Language:
                                   </span>
-                                  <span>{job.input.params?.language}</span>
+                                  <span>
+                                    {currentJobData?.input.params?.language}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
                                     Model:
                                   </span>
-                                  <span>{job.input.params?.model}</span>
+                                  <span>
+                                    {currentJobData?.input.params?.model}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -470,12 +535,12 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
             </div>
 
             {/* Text Display */}
-            <div className="p-4 bg-background rounded-lg min-h-[300px] max-h-[400px] overflow-y-auto">
+            <div className="p-4 bg-background rounded-lg min-h-75 max-h-100 overflow-y-auto">
               {isEditing ? (
                 <textarea
                   value={editedText}
                   onChange={(e) => setEditedText(e.target.value)}
-                  className={`w-full h-[300px] bg-transparent border-none outline-none resize-none ${
+                  className={`w-full h-75 bg-transparent border-none outline-none resize-none ${
                     fontSize === "small"
                       ? "text-sm"
                       : fontSize === "medium"

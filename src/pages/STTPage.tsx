@@ -20,8 +20,11 @@ import {
   Check,
   X,
   Highlighter,
+  Save,
+  SaveOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { countSavedJobs } from "@/services/indexedDB";
 import {
   HoverCard,
   HoverCardContent,
@@ -32,12 +35,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-// import {
-//   Popover,
-//   PopoverContent,
-//   PopoverTrigger,
-// } from "@/components/ui/popover";
 
 export function STTPage() {
   const [showOutput, setShowOutput] = useState(false);
@@ -121,6 +118,28 @@ export function STTPage() {
   const handleEditCancel = () => {
     setEditedText("");
     setIsEditing(false);
+  };
+
+  const handleToggleSave = async () => {
+    if (!currentJob) return;
+
+    const wasSaved = currentJob.saved;
+
+    // Check if trying to save and already at limit
+    if (!wasSaved) {
+      const savedCount = await countSavedJobs();
+      if (savedCount >= 10) {
+        toast.error(
+          "Maximum 10 saved files allowed. Please remove a file first.",
+        );
+        return;
+      }
+    }
+
+    const toggleJobSavedStore = useJobStore.getState().toggleJobSaved;
+    await toggleJobSavedStore(currentJob.id);
+
+    toast.success(wasSaved ? "File unsaved" : "File saved!");
   };
 
   const fetchSRTData = async (jobId: number) => {
@@ -407,6 +426,27 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
+                  {/* Save/Unsave Button */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer"
+                        onClick={handleToggleSave}
+                      >
+                        {currentJob?.saved ? (
+                          <SaveOff className="h-4 w-4" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{currentJob?.saved ? "Unsave" : "Save"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   {/* Font Size Toggle */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -493,7 +533,7 @@ export function STTPage() {
                                 <span className="text-muted-foreground">
                                   Job ID:
                                 </span>
-                                <span className="font-mono">
+                                <span>
                                   {currentJobId}
                                 </span>
                               </div>
@@ -632,7 +672,7 @@ export function STTPage() {
                 // Show toast
                 toast.info("Transcription cancelled");
               }}
-              className="mt-4 min-w-[200px] text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 cursor-pointer"
+              className="mt-4 min-w-50 text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 cursor-pointer"
             >
               Cancel Transcription
             </Button>
@@ -662,6 +702,24 @@ export function STTPage() {
       }
     }
   }, [currentJob, generateTimestamp, currentJobId]);
+
+  // Watch for job deletion - reset to initial state if current job is deleted
+  useEffect(() => {
+    if (currentJobId && !currentJob) {
+      // Job was deleted from store
+      console.log("Current job deleted, resetting to initial state");
+      
+      setSelectedFile(null);
+      setShowOutput(false);
+      setCurrentJobId(null);
+      setTranscriptionResult("");
+      setSrtText(null);
+      setHasEditedText(false);
+      setSettingsChanged(false);
+    }
+  }, [currentJob, currentJobId]);
+
+  // Settings Change Detector 
 
   useEffect(() => {
     if (!showOutput) return; // Only check after output exists
