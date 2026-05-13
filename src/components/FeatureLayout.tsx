@@ -26,6 +26,7 @@ interface FeatureLayoutProps {
   children: ReactNode;
   settingsContent: ReactNode;
   showNewButton?: boolean;
+  onNew?: () => void;
   viewMode?: "horizontal" | "vertical";
   onViewModeChange?: (mode: "horizontal" | "vertical") => void;
 }
@@ -38,8 +39,11 @@ export function FeatureLayout({
   showNewButton = true,
   viewMode = "horizontal",
   onViewModeChange,
+  onNew,
 }: FeatureLayoutProps) {
   const navigate = useNavigate();
+  const activeJobCount = useJobStore((state) => state.getActiveJobs().length);
+  const isNewDisabled = activeJobCount >= 3;
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [savedSectionOpen, setSavedSectionOpen] = useState(false); // Start collapsed
@@ -127,13 +131,21 @@ export function FeatureLayout({
             {showNewButton && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  
-              <Button variant="outline" className="w-full cursor-pointer mt-6">
-                New
-              </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full cursor-pointer mt-6"
+                    onClick={onNew}
+                    disabled={isNewDisabled}
+                  >
+                    New
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Start a new transcription</p>
+                  <p>
+                    {isNewDisabled
+                      ? "Max 3 concurrent jobs running"
+                      : "Start a new transcription"}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             )}

@@ -16,7 +16,7 @@ import {
 import WaveSurfer from "wavesurfer.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB in bytes
 const ALLOWED_EXTENSIONS = [".wav", ".mp3", ".ogg"];
 const ALLOWED_MIME_TYPES = [
   "audio/wav",
@@ -283,7 +283,7 @@ export function AudioInput({
             <div>
               <p className="text-lg font-medium">Drop audio here</p>
               <p className="text-sm text-muted-foreground mt-1">
-                WAV, MP3, OGG • up to 5MB
+                WAV, MP3, OGG • up to 3MB
               </p>
             </div>
           </div>

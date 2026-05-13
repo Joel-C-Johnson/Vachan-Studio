@@ -15,7 +15,7 @@ export function Layout() {
   const [pendingFeature, setPendingFeature] = useState<string | null>(null);
 
   // Use auth store
-  const { token, isAuthenticated, login, logout } = useAuthStore();
+  const { isAuthenticated, login, logout } = useAuthStore();
 
   const handleLoginSuccess = async (newToken: string) => {
     login(newToken); // Save to store

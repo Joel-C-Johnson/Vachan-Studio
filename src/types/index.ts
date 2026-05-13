@@ -29,6 +29,7 @@ export interface Job {
     srtText?: string;
     textWasEdited?: boolean;
     audioUrl?: string;
+    audioReady?: boolean;
     translatedText?: string;
     data?: any;
   };

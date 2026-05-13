@@ -3,7 +3,8 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
-import { STTPage } from './pages/STTPage';
+import { STTPage } from "./pages/STTPage";
+import { TTSPage } from "./pages/TTSPage";
 
 export const router = createBrowserRouter([
   {
@@ -15,11 +16,13 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "/stt", // ← Make sure this route exists
+        path: "/stt",
         element: <STTPage />,
       },
-      // We'll add more routes here later
-      // { path: '/stt', element: <STTPage /> }
+      {
+        path: "/tts",
+        element: <TTSPage />,
+      },
     ],
   },
 ]);

@@ -268,10 +268,8 @@ export function STTPage() {
       // TODO: SSE will notify us when complete (Phase 2)
       // For now, we can poll or wait for SSE notification
     } catch (error) {
-      console.error("Failed to submit job:", error);
-      alert(
-        `Failed to submit transcription job: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+
+      toast.error("Failed to submit transcription. Reason for invalid data when processing input;");
     } finally {
       setIsSubmitting(false);
     }
@@ -294,6 +292,20 @@ export function STTPage() {
       onTimestampFormatChange={setTimestampFormat}
     />
   );
+
+  const handleNew = () => {
+    setSelectedFile(null);
+    setShowOutput(false);
+    setHasSubmitted(false);
+    setCurrentJobId(null);
+    setTranscriptionResult("");
+    setSrtText(null);
+    setIsEditing(false);
+    setEditedText("");
+    setSettingsChanged(false);
+    setWavesurferInstance(null);
+    setHighlightingEnabled(false);
+  };
 
   // Input section content
   const inputContent = (
@@ -767,6 +779,7 @@ export function STTPage() {
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       showNewButton={hasSubmitted}
+      onNew={handleNew}
     >
       <SplitView
         inputContent={inputContent}

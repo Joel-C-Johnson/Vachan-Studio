@@ -1,55 +1,52 @@
-// src/components/STTSettings.tsx
+// src/components/TTSSettings.tsx
 
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  getAllLanguages,
-  getRecommendedModel,
-  supportsTimestamp,
-  getModelDisplayName,
-} from "@/utils/modelHelpers";
-import type { Language } from "@/utils/modelHelpers";
+  getTTSLanguages,
+  getRecommendedTTSModel,
+  getModelsForTTSLanguage,
+  requiresDescription,
+  requiresLanguage,
+} from "@/utils/ttsModelHelpers";
+import type { TTSLanguage } from "@/utils/ttsModelHelpers";
 
-interface STTSettingsProps {
+interface TTSSettingsProps {
   selectedLanguage: string;
   selectedModel: string;
   device: string;
-  generateTimestamp: boolean;
-  timestampFormat: string;
+  enhance: boolean;
+  description: string;
   onLanguageChange: (langCode: string) => void;
   onModelChange: (modelName: string) => void;
   onDeviceChange: (device: string) => void;
-  onTimestampChange: (enabled: boolean) => void;
-  onTimestampFormatChange: (format: string) => void;
+  onEnhanceChange: (enhance: boolean) => void;
+  onDescriptionChange: (description: string) => void;
 }
 
-export function STTSettings({
+export function TTSSettings({
   selectedLanguage,
   selectedModel,
   device,
-  generateTimestamp,
-  timestampFormat,
+  enhance,
+  description,
   onLanguageChange,
   onModelChange,
   onDeviceChange,
-  onTimestampChange,
-  onTimestampFormatChange,
-}: STTSettingsProps) {
+  onEnhanceChange,
+  onDescriptionChange,
+}: TTSSettingsProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [languages, setLanguages] = useState<Language[]>([]);
+  const [languages, setLanguages] = useState<TTSLanguage[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Get and sort languages alphabetically
-    const allLanguages = getAllLanguages();
-    const sorted = [...allLanguages].sort((a, b) =>
-      a.lang_name.localeCompare(b.lang_name),
-    );
-    setLanguages(sorted);
+    const allLanguages = getTTSLanguages();
+    setLanguages(allLanguages);
   }, []);
 
   // Close dropdown when clicking outside
@@ -62,14 +59,8 @@ export function STTSettings({
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   const handleLanguageSelect = (langCode: string) => {
@@ -78,25 +69,29 @@ export function STTSettings({
     setSearchTerm("");
 
     // Auto-select recommended model
-    const recommended = getRecommendedModel(langCode);
-    if (recommended) {
-      onModelChange(recommended.name);
-    }
+    const recommended = getRecommendedTTSModel(langCode);
+    if (recommended) onModelChange(recommended.name);
   };
 
-  // Filter languages based on search
   const filteredLanguages = searchTerm
     ? languages.filter(
         (lang) =>
           lang.lang_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lang.lang_code.toLowerCase().includes(searchTerm.toLowerCase()),
       )
-    : languages.slice(0, 100); // Show only first 100 when not searching
+    : languages.slice(0, 100);
 
   const selectedLangName =
     languages.find((l) => l.lang_code === selectedLanguage)?.lang_name ||
     "Select language";
-  const modelSupportsTimestamp = supportsTimestamp(selectedModel);
+
+  // Models available for override (when language is selected)
+  const availableModels = selectedLanguage
+    ? getModelsForTTSLanguage(selectedLanguage)
+    : [];
+
+  const showDescription = requiresDescription(selectedModel);
+  const showLanguage = requiresLanguage(selectedModel);
 
   return (
     <div className="space-y-4">
@@ -107,13 +102,20 @@ export function STTSettings({
         </button>
       </div>
 
-      {/* Language Selection - Simple Searchable */}
+      {/* Language Selection */}
+
       <div className="space-y-2" ref={dropdownRef}>
         <label className="text-sm font-medium">
-          Audio Language <span className="text-destructive">*</span>
+          Language{" "}
+          {showLanguage ? (
+            <span className="text-destructive">*</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              (optional for this model)
+            </span>
+          )}
         </label>
 
-        {/* Trigger Button */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -131,10 +133,8 @@ export function STTSettings({
           />
         </button>
 
-        {/* Dropdown */}
         {isOpen && (
           <div className="absolute z-50 w-(--radix-popover-trigger-width) mt-1 border rounded-lg bg-background shadow-lg">
-            {/* Search Input */}
             <div className="p-2 border-b sticky top-0 bg-background">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -156,7 +156,6 @@ export function STTSettings({
               </div>
             </div>
 
-            {/* Results List */}
             <div className="max-h-75 overflow-y-auto">
               {filteredLanguages.length > 0 ? (
                 filteredLanguages.map((lang) => (
@@ -182,25 +181,57 @@ export function STTSettings({
         )}
       </div>
 
-      {/* Model (Auto-selected) */}
-      {selectedLanguage && (
+      {/* Auto-selected Model */}
+      {selectedModel && (
         <div className="space-y-2">
           <label className="text-sm font-medium">Model</label>
           <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm font-medium">
-              {getModelDisplayName(selectedModel)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              ℹ️ Auto-selected for {selectedLangName}
-            </p>
-            {selectedModel === "mms-1b-all" && (
-              <div className="flex items-center gap-2 mt-2 text-xs text-primary">
-                <span className="font-medium">
-                  Supports word-level highlighting in SRT format
-                </span>
+            <p className="text-sm font-medium">{selectedModel}</p>
+            {selectedLanguage && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ℹ️ Auto-selected for {selectedLangName}
+              </p>
+            )}
+
+            {/* Model override dropdown - only if multiple models available */}
+            {availableModels.length > 1 && (
+              <div className="mt-2">
+                <select
+                  value={selectedModel}
+                  onChange={(e) => onModelChange(e.target.value)}
+                  className="w-full p-1.5 border rounded text-xs cursor-pointer bg-background"
+                >
+                  {availableModels.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Description - only for indic-parler-tts */}
+      {showDescription && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Voice Description
+            <span className="text-xs text-muted-foreground ml-1">
+              (optional)
+            </span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            placeholder='e.g. "Leela speaks in a high-pitched, fast-paced, and cheerful tone..."'
+            rows={3}
+            className="w-full p-2 border rounded-lg text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="text-xs text-muted-foreground">
+            Describes how the speech should sound. Specific to this model.
+          </p>
         </div>
       )}
 
@@ -232,37 +263,19 @@ export function STTSettings({
               </select>
             </div>
 
-            {/* Timestamp Options (only if model supports) */}
-            {modelSupportsTimestamp && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="timestamp"
-                    checked={generateTimestamp}
-                    onChange={(e) => onTimestampChange(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <label htmlFor="timestamp" className="text-sm font-medium">
-                    Generate Timestamps
-                  </label>
-                </div>
-
-                {generateTimestamp && (
-                  <div className="space-y-2 ml-6">
-                    <label className="text-sm font-medium">Format</label>
-                    <select
-                      value={timestampFormat}
-                      onChange={(e) => onTimestampFormatChange(e.target.value)}
-                      className="w-full p-2 border rounded-lg text-sm cursor-pointer"
-                    >
-                      <option value="srt">SRT</option>
-                      <option value="vtt">VTT</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Enhance */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="enhance"
+                checked={enhance}
+                onChange={(e) => onEnhanceChange(e.target.checked)}
+                className="w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="enhance" className="text-sm font-medium">
+                Enhance Audio
+              </label>
+            </div>
           </div>
         )}
       </div>

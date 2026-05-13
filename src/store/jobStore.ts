@@ -96,8 +96,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const newJob: Job = {
       ...job,
       id,
-      saved: false, // New jobs are unsaved by default
-      dismissed: false, // ← ADD THIS LINE
+      saved: false,
+      dismissed: false,
       createdAt: Date.now(),
     };
 
