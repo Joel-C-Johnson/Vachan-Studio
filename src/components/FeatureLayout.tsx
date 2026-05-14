@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useJobStore } from "@/store/jobStore";
-import { JobDetailModal } from "./JobDetailModal";
+import { STTJobDetailModal } from "./STTJobDetailModal";
 import { deleteJobFromDB } from "@/services/indexedDB";
 import { toast } from "sonner";
 import type { Job } from "@/types";
@@ -301,7 +301,7 @@ export function FeatureLayout({
 
       {/* Job Detail Modal */}
       {selectedJob && (
-        <JobDetailModal
+        <STTJobDetailModal
           job={selectedJob}
           isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}

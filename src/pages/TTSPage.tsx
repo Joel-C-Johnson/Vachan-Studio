@@ -24,11 +24,7 @@ import {
 import { toast } from "sonner";
 import { countSavedJobs } from "@/services/indexedDB";
 import WaveSurfer from "wavesurfer.js";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AudioFile {
   name: string;
@@ -37,7 +33,6 @@ interface AudioFile {
 }
 
 export function TTSPage() {
-  //   const [texts, setTexts] = useState<string[]>([""]);
   const [boxes, setBoxes] = useState<string[]>([""]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
@@ -48,10 +43,9 @@ export function TTSPage() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [viewMode, setViewMode] = useState<"horizontal" | "vertical">(
-    "horizontal",
-  );
+  const [viewMode, setViewMode] = useState<"horizontal" | "vertical">("horizontal");
   const [settingsChanged, setSettingsChanged] = useState(false);
+  const [contentChanged, setContentChanged] = useState(false);
   const [lastSubmittedSettings, setLastSubmittedSettings] = useState({
     language: "",
     model: "",
@@ -69,6 +63,12 @@ export function TTSPage() {
 
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
+  const autoPlayRef = useRef(autoPlay);
+
+  // Keep autoPlayRef in sync
+  useEffect(() => {
+    autoPlayRef.current = autoPlay;
+  }, [autoPlay]);
 
   const { token } = useAuthStore();
   useSSESync(token);
@@ -79,7 +79,7 @@ export function TTSPage() {
     currentJobId ? state.getJobByJobId(currentJobId) : undefined,
   );
 
-  // Initialize / reinitialize WaveSurfer when audio file or index changes
+  // Create WaveSurfer only when audioFiles changes (new job result)
   useEffect(() => {
     if (!waveformRef.current || audioFiles.length === 0) return;
 
@@ -104,25 +104,36 @@ export function TTSPage() {
     ws.on("pause", () => setIsPlaying(false));
     ws.on("finish", () => {
       setIsPlaying(false);
-      // Auto-play next segment
-      if (autoPlay && currentAudioIndex < audioFiles.length - 1) {
-        setCurrentAudioIndex((prev) => prev + 1);
-      }
+      // Use functional update to always have latest index
+      setCurrentAudioIndex((prev) => {
+        if (autoPlayRef.current && prev < audioFiles.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
     });
-    if (!audioFiles[currentAudioIndex]) return;
-    ws.loadBlob(audioFiles[currentAudioIndex].blob);
+
+    ws.loadBlob(audioFiles[0].blob);
     wavesurferRef.current = ws;
 
     return () => {
       ws.destroy();
+      wavesurferRef.current = null;
     };
-  }, [audioFiles, currentAudioIndex]);
+  }, [audioFiles]);
 
-  // Auto-play when switching segments (not on first load)
+  // Handle segment switching — just load new blob, don't recreate WaveSurfer
   useEffect(() => {
     if (!wavesurferRef.current || audioFiles.length === 0) return;
-    if (autoPlay && currentAudioIndex > 0) {
-      wavesurferRef.current.play();
+    if (!audioFiles[currentAudioIndex]) return;
+
+    wavesurferRef.current.loadBlob(audioFiles[currentAudioIndex].blob);
+
+    // Auto-play when switching to next segment (not on initial load)
+    if (autoPlayRef.current && currentAudioIndex > 0) {
+      wavesurferRef.current.once("ready", () => {
+        wavesurferRef.current?.play();
+      });
     }
   }, [currentAudioIndex]);
 
@@ -146,7 +157,6 @@ export function TTSPage() {
         return;
       }
 
-      // Sort by filename for consistent ordering
       extracted.sort((a, b) => a.name.localeCompare(b.name));
 
       const audioWithUrls: AudioFile[] = extracted.map((f) => ({
@@ -190,9 +200,19 @@ export function TTSPage() {
       return;
     }
 
+    // Update lastSubmittedSettings FIRST before resetting changed flags
+    // This prevents the settings detection effect from re-triggering
+    setLastSubmittedSettings({
+      language: selectedLanguage,
+      model: selectedModel,
+      device,
+      enhance,
+      description,
+    });
+    setSettingsChanged(false);
+    setContentChanged(false);
     setIsSubmitting(true);
     setAudioFiles([]);
-    setSettingsChanged(false);
 
     try {
       const jobId = await aiEngineService.submitTTSJob(filledTexts, token, {
@@ -203,8 +223,6 @@ export function TTSPage() {
         device,
         enhance,
       });
-
-      console.log("TTS job submitted, jobId:", jobId);
 
       addJob({
         jobId,
@@ -225,14 +243,6 @@ export function TTSPage() {
       setShowOutput(true);
       setHasSubmitted(true);
       setCurrentAudioIndex(0);
-
-      setLastSubmittedSettings({
-        language: selectedLanguage,
-        model: selectedModel,
-        device,
-        enhance,
-        description,
-      });
     } catch (error) {
       console.error("TTS submission failed:", error);
       const parts = (error instanceof Error ? error.message : "Unknown error")
@@ -258,7 +268,15 @@ export function TTSPage() {
     setCurrentAudioIndex(0);
     setIsPlaying(false);
     setSettingsChanged(false);
+    setContentChanged(false);
     setIsLoadingAudio(false);
+  };
+
+  const handleContentChanged = () => {
+    if (!contentChanged) {
+      setContentChanged(true);
+      toast.info("Content changed — submit again to generate new audio");
+    }
   };
 
   const handleToggleSave = async () => {
@@ -269,10 +287,17 @@ export function TTSPage() {
     if (!wasSaved) {
       const savedCount = await countSavedJobs();
       if (savedCount >= 10) {
-        toast.error(
-          "Maximum 10 saved files allowed. Please remove a file first.",
-        );
+        toast.error("Maximum 10 saved files allowed. Please remove a file first.");
         return;
+      }
+
+      if (audioFiles.length > 0) {
+        updateJobByJobId(currentJob.jobId, {
+          output: {
+            ...currentJob.output,
+            audioBlobs: audioFiles.map((f) => f.blob),
+          },
+        });
       }
     }
 
@@ -369,9 +394,10 @@ export function TTSPage() {
         onBoxesChange={setBoxes}
         isSubmitted={hasSubmitted && showOutput && audioFiles.length === 0}
         hasResult={audioFiles.length > 0}
+        onContentChanged={handleContentChanged}
       />
 
-      {(!showOutput || settingsChanged) && (
+      {(!hasSubmitted || settingsChanged || contentChanged) && (
         <div className="flex justify-center mt-6">
           <Button
             size="lg"
@@ -414,9 +440,7 @@ export function TTSPage() {
                     <Download className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download audio</p>
-                </TooltipContent>
+                <TooltipContent><p>Download audio</p></TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -444,7 +468,6 @@ export function TTSPage() {
 
         {audioFiles.length > 0 ? (
           <div className="flex-1 flex flex-col gap-4">
-            {/* Segment pills + autoplay toggle */}
             {audioFiles.length > 1 && (
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -462,7 +485,6 @@ export function TTSPage() {
                     </button>
                   ))}
                 </div>
-
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -471,45 +493,32 @@ export function TTSPage() {
                     onChange={(e) => setAutoPlay(e.target.checked)}
                     className="w-4 h-4 cursor-pointer"
                   />
-                  <label
-                    htmlFor="autoplay"
-                    className="text-xs text-muted-foreground cursor-pointer"
-                  >
+                  <label htmlFor="autoplay" className="text-xs text-muted-foreground cursor-pointer">
                     Auto-play next
                   </label>
                 </div>
               </div>
             )}
 
-            {/* WaveSurfer player */}
             <div className="border rounded-lg p-4 bg-background">
-              <div ref={waveformRef} className="w-full" />
-
+              <div ref={waveformRef} className="w-full overflow-hidden" />
               <div className="flex items-center gap-3 mt-3">
-                {/* Play/Pause */}
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-9 w-9 cursor-pointer shrink-0"
                   onClick={() => wavesurferRef.current?.playPause()}
                 >
-                  {isPlaying ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
+                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
 
-                {/* Prev / Next for multiple */}
                 {audioFiles.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 cursor-pointer"
-                      onClick={() =>
-                        setCurrentAudioIndex((p) => Math.max(0, p - 1))
-                      }
+                      onClick={() => setCurrentAudioIndex((p) => Math.max(0, p - 1))}
                       disabled={currentAudioIndex === 0}
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -521,11 +530,7 @@ export function TTSPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 cursor-pointer"
-                      onClick={() =>
-                        setCurrentAudioIndex((p) =>
-                          Math.min(audioFiles.length - 1, p + 1),
-                        )
-                      }
+                      onClick={() => setCurrentAudioIndex((p) => Math.min(audioFiles.length - 1, p + 1))}
                       disabled={currentAudioIndex === audioFiles.length - 1}
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -542,19 +547,15 @@ export function TTSPage() {
         ) : isLoadingAudio ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-            <span className="text-sm text-muted-foreground">
-              Loading audio...
-            </span>
+            <span className="text-sm text-muted-foreground">Loading audio...</span>
           </div>
         ) : (
-          // Processing state
           <div className="flex flex-col items-center justify-center h-full space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <div className="text-center">
               <p className="text-sm font-medium">Generating speech...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                This may take a few moments. You can switch to other features
-                while waiting.
+                This may take a few moments. You can switch to other features while waiting.
               </p>
             </div>
             <div className="text-xs text-muted-foreground space-y-1">
@@ -563,7 +564,6 @@ export function TTSPage() {
               <p>• Model: {selectedModel}</p>
               <p>• Device: {device.toUpperCase()}</p>
             </div>
-
             <Button
               variant="outline"
               onClick={() => {
@@ -577,6 +577,7 @@ export function TTSPage() {
                 setShowOutput(false);
                 setCurrentJobId(null);
                 setSettingsChanged(false);
+                setContentChanged(false);
                 toast.info("Generation cancelled");
               }}
               className="mt-4 min-w-50 text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 cursor-pointer"

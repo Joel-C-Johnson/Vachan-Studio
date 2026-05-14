@@ -30,6 +30,7 @@ export interface Job {
     textWasEdited?: boolean;
     audioUrl?: string;
     audioReady?: boolean;
+    audioBlobs?: Blob[];
     translatedText?: string;
     data?: any;
   };

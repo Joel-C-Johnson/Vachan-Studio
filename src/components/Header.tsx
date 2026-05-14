@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { NotificationPanel } from "./NotificationPanel";
 import { useJobStore } from "@/store/jobStore";
-import { JobDetailModal } from "./JobDetailModal";
+import { STTJobDetailModal } from "./STTJobDetailModal";
 import type { Job } from "@/types";
 
 interface HeaderProps {
@@ -139,7 +139,7 @@ export function Header({
       </div>
       {/* Job Detail Modal - Outside header */}
       {selectedJob && (
-        <JobDetailModal
+        <STTJobDetailModal
           job={selectedJob}
           isOpen={!!selectedJob}
           onClose={() => setSelectedJob(null)}

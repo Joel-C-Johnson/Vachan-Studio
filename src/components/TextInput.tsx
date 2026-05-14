@@ -1,6 +1,6 @@
 // src/components/TextInput.tsx
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 const MAX_BOXES = 3;
@@ -14,17 +14,12 @@ function countTotalWords(boxes: string[]): number {
   return boxes.reduce((sum, text) => sum + countWords(text), 0);
 }
 
-// interface TextInputProps {
-//   onTextsChange: (texts: string[]) => void;
-//   isSubmitted: boolean;
-//   hasResult: boolean;
-// }
-
 interface TextInputProps {
   boxes: string[];
   onBoxesChange: (boxes: string[]) => void;
   isSubmitted: boolean;
   hasResult: boolean;
+  onContentChanged?: () => void;
 }
 
 export function TextInput({
@@ -32,34 +27,21 @@ export function TextInput({
   onBoxesChange,
   isSubmitted,
   hasResult,
+  onContentChanged,
 }: TextInputProps) {
-  //   const [boxes, setBoxes] = useState<string[]>([""]);
-  const [pendingDelete, setPendingDelete] = useState<number | null>(null); // index of box highlighted for delete
-  const [editedAfterResult, setEditedAfterResult] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
 
   const totalWords = countTotalWords(boxes);
   const isOverLimit = totalWords > MAX_WORDS;
   const canAddBox = boxes.length < MAX_BOXES && !isOverLimit && !isSubmitted;
 
-  //   useEffect(() => {
-  //     onTextsChange(boxes);
-  //   }, [boxes]);
-
-  // Reset edited flag when new result arrives
-  useEffect(() => {
-    if (hasResult) setEditedAfterResult(false);
-  }, [hasResult]);
-
   const handleChange = (index: number, value: string) => {
     const updated = [...boxes];
     updated[index] = value;
     onBoxesChange(updated);
-    setPendingDelete(null); // clear any pending delete on type
-
-    if (hasResult && !editedAfterResult) {
-      setEditedAfterResult(true);
-    }
+    setPendingDelete(null);
+    if (hasResult) onContentChanged?.();
   };
 
   const handleAddBox = () => {
@@ -71,11 +53,11 @@ export function TextInput({
   };
 
   const removeBox = (index: number) => {
-    if (boxes.length === 1) return; // always keep at least one box
+    if (boxes.length === 1) return;
     const updated = boxes.filter((_, i) => i !== index);
     onBoxesChange(updated);
     setPendingDelete(null);
-    // Focus previous box
+    if (hasResult) onContentChanged?.();
     setTimeout(() => {
       textareaRefs.current[Math.max(0, index - 1)]?.focus();
     }, 50);
@@ -87,10 +69,8 @@ export function TextInput({
   ) => {
     if (e.key === "Backspace" && boxes[index] === "" && index > 0) {
       if (pendingDelete === index) {
-        // Second backspace — remove
         removeBox(index);
       } else {
-        // First backspace — highlight
         setPendingDelete(index);
       }
     } else {
@@ -102,7 +82,6 @@ export function TextInput({
 
   return (
     <div className="space-y-3">
-      {/* Boxes */}
       {boxes.map((text, index) => (
         <div
           key={index}
@@ -115,9 +94,7 @@ export function TextInput({
           }`}
         >
           <textarea
-            ref={(el) => {
-              textareaRefs.current[index] = el;
-            }}
+            ref={(el) => { textareaRefs.current[index] = el; }}
             value={text}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
@@ -126,7 +103,7 @@ export function TextInput({
               pendingDelete === index
                 ? "Press backspace again to remove this segment"
                 : index === 0
-                  ? "Enter text..."
+                  ? "Enter text to convert to speech..."
                   : `Text segment ${index + 1}...`
             }
             rows={3}
@@ -135,7 +112,6 @@ export function TextInput({
             }`}
           />
 
-          {/* Remove box button - only show on non-first boxes when not submitted */}
           {index > 0 && !isReadOnly && (
             <button
               onClick={() => removeBox(index)}
@@ -147,21 +123,16 @@ export function TextInput({
         </div>
       ))}
 
-      {/* Footer: word count + add button */}
       <div className="flex items-center justify-between">
-        {/* Word count */}
         <span
           className={`text-xs ${
-            isOverLimit
-              ? "text-destructive font-medium"
-              : "text-muted-foreground"
+            isOverLimit ? "text-destructive font-medium" : "text-muted-foreground"
           }`}
         >
           {totalWords} / {MAX_WORDS} words
           {isOverLimit && " — over limit, please reduce text"}
         </span>
 
-        {/* Add box button */}
         {canAddBox && (
           <button
             onClick={handleAddBox}
@@ -172,13 +143,6 @@ export function TextInput({
           </button>
         )}
       </div>
-
-      {/* Edited after result warning */}
-      {editedAfterResult && hasResult && (
-        <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-          ℹ️ Content changed — submit again to generate new audio
-        </div>
-      )}
     </div>
   );
 }
