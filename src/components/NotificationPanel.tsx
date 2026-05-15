@@ -1,6 +1,6 @@
 // src/components/NotificationPanel.tsx
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import {
   FileText,
   Loader2,

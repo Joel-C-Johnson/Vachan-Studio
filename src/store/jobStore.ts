@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Job, JobStatus, StoredJob } from "@/types";
+import type { Job, StoredJob } from "@/types";
 import {
   saveJobToDB,
   deleteJobFromDB,

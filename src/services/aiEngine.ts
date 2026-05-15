@@ -168,7 +168,7 @@ class AIEngineService {
   /**
    * Cancel a job (placeholder - add endpoint when available)
    */
-  async cancelJob(jobId: number, token: string): Promise<void> {
+  async cancelJob(jobId: number): Promise<void> {
     // TODO: Add cancel endpoint when backend team provides it
     console.log("Cancel job:", jobId);
     throw new Error("Cancel endpoint not implemented yet");
