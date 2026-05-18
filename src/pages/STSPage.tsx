@@ -280,7 +280,7 @@ export function STSPage() {
 
   const handleToggleSave = async () => {
     if (!currentJob) return;
-    const wasSaved = currentJob.saved;
+    // const wasSaved = currentJob.saved;
     if (currentJob.saved) {
       const toggleJobSavedStore = useJobStore.getState().toggleJobSaved;
       await toggleJobSavedStore(currentJob.id);
