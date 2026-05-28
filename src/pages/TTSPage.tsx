@@ -22,15 +22,17 @@ import {
   Pause,
   Check,
   X,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 import WaveSurfer from "wavesurfer.js";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface AudioFile {
   name: string;
@@ -321,12 +323,24 @@ export function TTSPage() {
   const handleSaveConfirm = async () => {
     if (!currentJob) return;
 
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("tts");
     if (savedCount >= 10) {
       toast.error(
         "Maximum 10 saved files allowed. Please remove a file first.",
       );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `tts_${currentJob.jobId}`,
+      "tts",
+      currentJob.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -457,7 +471,7 @@ export function TTSPage() {
   );
 
   const inputContent = (
-    <div className="h-full p-6 flex flex-col">
+  <div className="h-full p-5 flex flex-col justify-center">
       <TextInput
         boxes={boxes}
         onBoxesChange={setBoxes}
@@ -492,8 +506,8 @@ export function TTSPage() {
   );
 
   const outputContent = showOutput ? (
-    <div className="h-full p-6">
-      <div className="h-full border rounded-lg p-6 bg-muted/30 flex flex-col">
+    <div className="h-full flex flex-col justify-center p-6">
+      <div className="border rounded-lg p-6 bg-muted/30 flex flex-col pb-12">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Generated Audio</h3>
 
@@ -580,6 +594,62 @@ export function TTSPage() {
                     <TooltipContent>
                       <p>{currentJob?.saved ? "Unsave" : "Save"}</p>
                     </TooltipContent>
+                  </Tooltip>
+
+                  {/* Info */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HoverCard openDelay={0} closeDelay={0}>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-52">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm">
+                              Job Information
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Job ID:
+                                </span>
+                                <span>{currentJob?.jobId}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Language:
+                                </span>
+                                <span>
+                                  {currentJob?.input.params?.language}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Model:
+                                </span>
+                                <span>
+                                  {currentJob?.input.params?.model}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Device:
+                                </span>
+                                <span>
+                                  {currentJob?.input.params?.device?.toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </TooltipTrigger>
                   </Tooltip>
                 </>
               )}
@@ -730,12 +800,13 @@ export function TTSPage() {
 
   return (
     <FeatureLayout
-      featureName="Text To Speech"
+      featureName="Audio Generation"
       featureType="tts"
       settingsContent={settingsContent}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       showNewButton={hasSubmitted}
+      showOutput={showOutput}
       onNew={handleNew}
     >
       <SplitView

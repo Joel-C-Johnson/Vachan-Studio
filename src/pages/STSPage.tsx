@@ -20,15 +20,17 @@ import {
   Pause,
   Check,
   X,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 import WaveSurfer from "wavesurfer.js";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface AudioFile {
   name: string;
@@ -45,11 +47,15 @@ export function STSPage() {
   const [audioFile, setAudioFile] = useState<AudioFile | null>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [viewMode, setViewMode] = useState<"horizontal" | "vertical">("horizontal");
+  const [viewMode, setViewMode] = useState<"horizontal" | "vertical">(
+    "horizontal",
+  );
   const [settingsChanged, setSettingsChanged] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
-  const [activeSettingsTab, setActiveSettingsTab] = useState<"input" | "output">("input");
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    "input" | "output"
+  >("input");
   const [lastSubmittedSettings, setLastSubmittedSettings] = useState({
     targetLanguage: "",
     outputFormat: "wav",
@@ -159,8 +165,13 @@ export function STSPage() {
       toast.info("Settings updated — submit again to apply changes");
     }
   }, [
-    targetLanguage, outputFormat, device, enhance,
-    showOutput, lastSubmittedSettings, settingsChanged,
+    targetLanguage,
+    outputFormat,
+    device,
+    enhance,
+    showOutput,
+    lastSubmittedSettings,
+    settingsChanged,
   ]);
 
   const fetchAudioData = async (jobId: number) => {
@@ -243,11 +254,11 @@ export function STSPage() {
       setShowOutput(true);
       setHasSubmitted(true);
     } catch (error) {
-      console.error("STS submission failed:", error);
-      const parts = (error instanceof Error ? error.message : "Unknown error")
-        .split("\n")
-        .filter((l) => l.trim() !== "");
-      toast.error(parts[parts.length - 1] ?? "Failed to submit translation job");
+      // console.error("STS submission failed:", error);
+      // const parts = (error instanceof Error ? error.message : "Unknown error")
+      //   .split("\n")
+      //   .filter((l) => l.trim() !== "");
+      toast.error("Audio failed to submit. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -287,16 +298,33 @@ export function STSPage() {
       toast.success("File unsaved");
       return;
     }
-    setSaveFileName(currentJob.input.fileName || `sts_${currentJob.jobId}`);
+    const nameWithoutExt = (
+      currentJob.input.fileName || `sts_${currentJob.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+    setSaveFileName(nameWithoutExt);
     setIsSaving(true);
   };
 
   const handleSaveConfirm = async () => {
     if (!currentJob) return;
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("sts");
     if (savedCount >= 10) {
-      toast.error("Maximum 10 saved files allowed. Please remove a file first.");
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `sts_${currentJob.jobId}`,
+      "sts",
+      currentJob.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -383,8 +411,8 @@ export function STSPage() {
   );
 
   const outputContent = showOutput ? (
-    <div className="h-full p-6">
-      <div className="h-full border rounded-lg p-6 bg-muted/30 flex flex-col">
+    <div className="h-full flex flex-col justify-center p-6">
+      <div className="border rounded-lg p-6 bg-muted/30 flex flex-col pb-12">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Translated Audio</h3>
 
@@ -414,7 +442,9 @@ export function STSPage() {
                         <Check className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Confirm save</p></TooltipContent>
+                    <TooltipContent>
+                      <p>Confirm save</p>
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -427,7 +457,9 @@ export function STSPage() {
                         <X className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Cancel</p></TooltipContent>
+                    <TooltipContent>
+                      <p>Cancel</p>
+                    </TooltipContent>
                   </Tooltip>
                 </div>
               ) : (
@@ -443,7 +475,9 @@ export function STSPage() {
                         <Download className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Download audio</p></TooltipContent>
+                    <TooltipContent>
+                      <p>Download audio</p>
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -464,6 +498,61 @@ export function STSPage() {
                       <p>{currentJob?.saved ? "Unsave" : "Save"}</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HoverCard openDelay={0} closeDelay={0}>
+                            <HoverCardTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer"
+                              >
+                                <Info className="h-4 w-4" />
+                              </Button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-60">
+                              <div className="space-y-3">
+                                <h4 className="font-semibold text-sm">
+                                  Job Information
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground shrink-0">
+                                      Job ID:
+                                    </span>
+                                    <span>{currentJob?.jobId}</span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground shrink-0">
+                                      Target:
+                                    </span>
+                                    <span>
+                                      {currentJob?.input.params?.language}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground shrink-0">
+                                      Model:
+                                    </span>
+                                    <span className="text-right">
+                                      {currentJob?.input.params?.model}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground shrink-0">
+                                      Device:
+                                    </span>
+                                    <span>
+                                      {currentJob?.input.params?.device?.toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </TooltipTrigger>
+                      </Tooltip>
                 </>
               )}
             </div>
@@ -506,7 +595,8 @@ export function STSPage() {
             <div className="text-center">
               <p className="text-sm font-medium">Translating audio...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                This may take a few moments. You can switch to other features while waiting.
+                This may take a few moments. You can switch to other features
+                while waiting.
               </p>
             </div>
             <div className="text-xs text-muted-foreground space-y-1">
@@ -543,12 +633,13 @@ export function STSPage() {
 
   return (
     <FeatureLayout
-      featureName="AI Voice Translation"
+      featureName="Audio Translation"
       featureType="sts"
       settingsContent={settingsContent}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       showNewButton={hasSubmitted}
+      showOutput={showOutput}
       onNew={handleNew}
     >
       <SplitView

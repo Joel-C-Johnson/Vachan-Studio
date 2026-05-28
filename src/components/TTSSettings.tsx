@@ -119,7 +119,7 @@ export function TTSSettings({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between p-2 border rounded-lg text-sm hover:bg-accent transition-colors"
+          className="w-full flex items-center justify-between cursor-pointer p-2 border rounded-lg text-sm hover:bg-accent transition-colors"
         >
           <span
             className={
@@ -148,7 +148,7 @@ export function TTSSettings({
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5 cursor-pointer"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -162,7 +162,7 @@ export function TTSSettings({
                   <button
                     key={lang.lang_code}
                     onClick={() => handleLanguageSelect(lang.lang_code)}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors ${
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-accent cursor-pointer transition-colors ${
                       selectedLanguage === lang.lang_code
                         ? "bg-accent font-medium"
                         : ""

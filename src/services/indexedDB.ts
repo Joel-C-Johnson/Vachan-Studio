@@ -34,6 +34,24 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 /**
+ * Check if a saved job with the same filename exists for a feature type
+ */
+export async function checkDuplicateFileName(
+  fileName: string,
+  featureType: string,
+  excludeId?: string,
+): Promise<boolean> {
+  const allJobs = await getAllJobsFromDB();
+  return allJobs.some(
+    (job) =>
+      job.saved === true &&
+      job.type === featureType &&
+      job.input.fileName === fileName &&
+      job.id !== excludeId,
+  );
+}
+
+/**
  * Save a job to IndexedDB
  */
 export async function saveJobToDB(job: StoredJob): Promise<void> {
@@ -109,9 +127,12 @@ export async function getSavedJobsFromDB(): Promise<StoredJob[]> {
 /**
  * Count saved jobs
  */
-export async function countSavedJobs(): Promise<number> {
+export async function countSavedJobs(featureType?: string): Promise<number> {
   const allJobs = await getAllJobsFromDB();
-  return allJobs.filter((job) => job.saved === true).length;
+  return allJobs.filter(
+    (job) =>
+      job.saved === true && (featureType ? job.type === featureType : true),
+  ).length;
 }
 
 /**

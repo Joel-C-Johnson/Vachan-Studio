@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/jobStore";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 
 interface TTTJobDetailModalProps {
   job: Job | null;
@@ -50,7 +50,9 @@ export function TTTJobDetailModal({
   );
   const currentJobData = liveJob || job;
 
-  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">("small");
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(
+    "small",
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -104,17 +106,31 @@ export function TTTJobDetailModal({
       return;
     }
     setSaveFileName(
-      currentJobData.input.fileName || `ttt_${currentJobData.jobId}`
+      currentJobData.input.fileName || `ttt_${currentJobData.jobId}`,
     );
     setIsSaving(true);
   };
 
   const handleSaveConfirm = async () => {
     if (!currentJobData) return;
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("ttt");
     if (savedCount >= 10) {
-      toast.error("Maximum 10 saved files allowed. Please remove a file first.");
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `ttt_${currentJobData.jobId}`,
+      "ttt",
+      currentJobData.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -189,7 +205,9 @@ export function TTTJobDetailModal({
                           <Check className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Confirm save</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Confirm save</p>
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -202,7 +220,9 @@ export function TTTJobDetailModal({
                           <X className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Cancel</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Cancel</p>
+                      </TooltipContent>
                     </Tooltip>
                   </div>
                 ) : isEditing ? (
@@ -218,7 +238,9 @@ export function TTTJobDetailModal({
                           <Check className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Save changes</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Save changes</p>
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -231,7 +253,9 @@ export function TTTJobDetailModal({
                           <X className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Cancel editing</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Cancel editing</p>
+                      </TooltipContent>
                     </Tooltip>
                   </>
                 ) : (
@@ -250,7 +274,9 @@ export function TTTJobDetailModal({
                           <Copy className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Copy</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Copy</p>
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -263,7 +289,9 @@ export function TTTJobDetailModal({
                           <Download className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Download</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Download</p>
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -276,7 +304,9 @@ export function TTTJobDetailModal({
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Edit</p></TooltipContent>
+                      <TooltipContent>
+                        <p>Edit</p>
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -309,7 +339,7 @@ export function TTTJobDetailModal({
                                 ? "medium"
                                 : prev === "medium"
                                   ? "large"
-                                  : "small"
+                                  : "small",
                             )
                           }
                         >
@@ -347,20 +377,34 @@ export function TTTJobDetailModal({
                               </h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Job ID:</span>
+                                  <span className="text-muted-foreground">
+                                    Job ID:
+                                  </span>
                                   <span>{currentJobData?.jobId}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Source:</span>
-                                  <span>{currentJobData?.input.params?.language}</span>
+                                  <span className="text-muted-foreground">
+                                    Source:
+                                  </span>
+                                  <span>
+                                    {currentJobData?.input.params?.language}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Model:</span>
-                                  <span>{currentJobData?.input.params?.model}</span>
+                                  <span className="text-muted-foreground">
+                                    Model:
+                                  </span>
+                                  <span>
+                                    {currentJobData?.input.params?.model}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Device:</span>
-                                  <span>{currentJobData?.input.params?.device?.toUpperCase()}</span>
+                                  <span className="text-muted-foreground">
+                                    Device:
+                                  </span>
+                                  <span>
+                                    {currentJobData?.input.params?.device?.toUpperCase()}
+                                  </span>
                                 </div>
                               </div>
                             </div>

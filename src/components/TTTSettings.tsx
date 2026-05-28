@@ -172,7 +172,7 @@ export function TTTSettings({
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5 cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -185,7 +185,7 @@ export function TTTSettings({
                 <button
                   key={lang.lang_code}
                   onClick={() => onSelect(lang.lang_code)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors ${
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-accent cursor-pointertransition-colors ${
                     selectedCode === lang.lang_code ? "bg-accent font-medium" : ""
                   }`}
                 >
@@ -209,7 +209,7 @@ export function TTTSettings({
       <div className="flex border-b">
         <button
           onClick={() => onTabChange("input")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
             activeTab === "input"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -219,7 +219,7 @@ export function TTTSettings({
         </button>
         <button
           onClick={() => onTabChange("output")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
             activeTab === "output"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"

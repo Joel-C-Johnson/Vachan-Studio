@@ -121,7 +121,7 @@ export function TextInput({
           {index > 0 && !isReadOnly && (
             <button
               onClick={() => removeBox(index)}
-              className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors"
+              className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -131,7 +131,7 @@ export function TextInput({
 
       <div className="flex items-center justify-between">
         <span
-          className={`text-xs ${
+          className={`text-xs pl-1 ${
             isOverLimit
               ? "text-destructive font-medium"
               : "text-muted-foreground"
@@ -144,10 +144,10 @@ export function TextInput({
         {canAddBox && (
           <button
             onClick={handleAddBox}
-            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            Add segment
+            Add Segment
           </button>
         )}
       </div>

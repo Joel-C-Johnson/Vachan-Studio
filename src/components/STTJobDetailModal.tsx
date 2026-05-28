@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/jobStore";
-import { countSavedJobs } from "@/services/indexedDB";
+import { countSavedJobs, checkDuplicateFileName } from "@/services/indexedDB";
 
 interface STTJobDetailModalProps {
   job: Job | null;
@@ -45,7 +45,11 @@ interface STTJobDetailModalProps {
   onClose: () => void;
 }
 
-export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalProps) {
+export function STTJobDetailModal({
+  job,
+  isOpen,
+  onClose,
+}: STTJobDetailModalProps) {
   // Watch the store for live updates to this job
   const liveJob = useJobStore((state) =>
     state.jobs.find((j) => j.id === job?.id),
@@ -64,6 +68,8 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
   const [highlightingEnabled, setHighlightingEnabled] = useState(false);
   const [wavesurferInstance, setWavesurferInstance] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
 
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
@@ -230,26 +236,57 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
     }
   };
 
-  const handleToggleSave = async (e: React.MouseEvent) => {
+  const handleSaveClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentJobData) return; // Add null check
-    const wasSaved = currentJobData.saved; // Store BEFORE toggle
-
-    // Check if trying to save and already at limit
-    if (!wasSaved) {
-      const savedCount = await countSavedJobs();
-      if (savedCount >= 10) {
-        toast.error(
-          "Maximum 10 saved files allowed. Please remove a file first.",
-        );
-        return;
-      }
+    if (!currentJobData) return;
+    if (currentJobData.saved) {
+      await toggleJobSavedStore(currentJobData.id);
+      toast.success("File unsaved");
+      return;
     }
+    const nameWithoutExt = (
+      currentJobData.input.fileName || `stt_${currentJobData.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+    setSaveFileName(nameWithoutExt);
+    setIsSaving(true);
+  };
 
+  const handleSaveConfirm = async () => {
+    if (!currentJobData) return;
+    const savedCount = await countSavedJobs("stt");
+    if (savedCount >= 10) {
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
+      setIsSaving(false);
+      return;
+    }
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `stt_${currentJobData.jobId}`,
+      "stt",
+      currentJobData.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
+      return;
+    }
+    const updateJob = useJobStore.getState().updateJob;
+    updateJob(currentJobData.id, {
+      input: {
+        ...currentJobData.input,
+        fileName: saveFileName.trim() || `stt_${currentJobData.jobId}`,
+      },
+    });
     await toggleJobSavedStore(currentJobData.id);
+    setIsSaving(false);
+    toast.success("File saved!");
+  };
 
-    // Show opposite of what it WAS
-    toast.success(wasSaved ? "File unsaved" : "File saved!");
+  const handleSaveCancel = () => {
+    setIsSaving(false);
+    setSaveFileName("");
   };
 
   const supportsHighlighting =
@@ -264,7 +301,7 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>
             <div>
-              <h2 className="text-xl font-semibold">Transcription</h2>
+              <h2 className="text-xl font-semibold">Audio Transcription</h2>
               <p className="text-sm text-muted-foreground m-1">
                 {currentJobData?.input.fileName}
               </p>
@@ -311,7 +348,6 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
               <div className="flex items-center gap-1">
                 {isEditing ? (
                   <>
-                    {/* Save */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -327,8 +363,6 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
                         <p>Save changes</p>
                       </TooltipContent>
                     </Tooltip>
-
-                    {/* Cancel */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -345,6 +379,50 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
                       </TooltipContent>
                     </Tooltip>
                   </>
+                ) : isSaving ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={saveFileName}
+                      onChange={(e) => setSaveFileName(e.target.value)}
+                      className="h-8 text-sm border rounded px-2 w-40 focus:outline-none focus:ring-1 focus:ring-ring"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveConfirm();
+                        if (e.key === "Escape") handleSaveCancel();
+                      }}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700"
+                          onClick={handleSaveConfirm}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Confirm save</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                          onClick={handleSaveCancel}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Cancel</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 ) : (
                   <>
                     {/* Copy */}
@@ -420,7 +498,7 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 cursor-pointer"
-                          onClick={handleToggleSave}
+                          onClick={handleSaveClick}
                         >
                           {currentJobData?.saved ? (
                             <SaveOff className="h-4 w-4" />
@@ -453,13 +531,7 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
                           }}
                         >
                           <Type
-                            className={`h-4 w-4 ${
-                              fontSize === "small"
-                                ? "scale-75"
-                                : fontSize === "medium"
-                                  ? "scale-100"
-                                  : "scale-125"
-                            }`}
+                            className={`h-4 w-4 ${fontSize === "small" ? "scale-75" : fontSize === "medium" ? "scale-100" : "scale-125"}`}
                           />
                         </Button>
                       </TooltipTrigger>
@@ -469,31 +541,33 @@ export function STTJobDetailModal({ job, isOpen, onClose }: STTJobDetailModalPro
                     </Tooltip>
 
                     {/* Highlighting Toggle */}
-                    {srtText && supportsHighlighting && !currentJobData?.output?.textWasEdited && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setHighlightingEnabled(!highlightingEnabled);
-                            }}
-                          >
-                            <Highlighter
-                              className={`h-4 w-4 ${highlightingEnabled ? "text-primary" : ""}`}
-                            />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {highlightingEnabled ? "Disable" : "Enable"} word
-                            highlighting
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                    {srtText &&
+                      supportsHighlighting &&
+                      !currentJobData?.output?.textWasEdited && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHighlightingEnabled(!highlightingEnabled);
+                              }}
+                            >
+                              <Highlighter
+                                className={`h-4 w-4 ${highlightingEnabled ? "text-primary" : ""}`}
+                              />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {highlightingEnabled ? "Disable" : "Enable"} word
+                              highlighting
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
 
                     {/* Info */}
                     <Tooltip>

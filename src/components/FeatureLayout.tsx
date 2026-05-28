@@ -26,6 +26,7 @@ interface FeatureLayoutProps {
   children: ReactNode;
   settingsContent: ReactNode;
   showNewButton?: boolean;
+  showOutput?: boolean;
   onNew?: () => void;
   viewMode?: "horizontal" | "vertical";
   onViewModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -37,6 +38,7 @@ export function FeatureLayout({
   children,
   settingsContent,
   showNewButton = true,
+  showOutput = false,
   viewMode = "horizontal",
   onViewModeChange,
   onNew,
@@ -224,29 +226,31 @@ export function FeatureLayout({
       <div className="flex-1 flex flex-col min-w-0">
         {/* View controls - top right */}
         <div className="h-12 flex items-center justify-end px-2 gap-2 shrink-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className="cursor-pointer"
-                variant="ghost"
-                size="icon"
-                onClick={toggleViewMode}
-              >
-                {viewMode === "horizontal" ? (
-                  <SquareCenterlineDashedVertical className="h-5 w-5" />
-                ) : (
-                  <SquareCenterlineDashedHorizontal className="h-5 w-5" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {viewMode === "horizontal"
-                  ? "Switch to vertical split"
-                  : "Switch to horizontal split"}
-              </p>
-            </TooltipContent>
-          </Tooltip>
+          {showOutput && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="cursor-pointer"
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleViewMode}
+                >
+                  {viewMode === "horizontal" ? (
+                    <SquareCenterlineDashedVertical className="h-5 w-5" />
+                  ) : (
+                    <SquareCenterlineDashedHorizontal className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {viewMode === "horizontal"
+                    ? "Switch to vertical split"
+                    : "Switch to horizontal split"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
           {/* Only show settings icon when panel is closed */}
           {!rightPanelOpen && (

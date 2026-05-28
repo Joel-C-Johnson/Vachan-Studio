@@ -24,7 +24,7 @@ import {
   SaveOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { countSavedJobs } from "@/services/indexedDB";
+import { countSavedJobs, checkDuplicateFileName } from "@/services/indexedDB";
 import {
   HoverCard,
   HoverCardContent,
@@ -57,6 +57,8 @@ export function STTPage() {
   const [highlightingEnabled, setHighlightingEnabled] = useState(false);
   // const [hasEditedText, setHasEditedText] = useState(false);
   const [settingsChanged, setSettingsChanged] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
   const [lastSubmittedSettings, setLastSubmittedSettings] = useState({
     language: "",
     model: "",
@@ -137,26 +139,61 @@ export function STTPage() {
     setIsEditing(false);
   };
 
-  const handleToggleSave = async () => {
+  const handleSaveClick = async () => {
     if (!currentJob) return;
-
-    const wasSaved = currentJob.saved;
-
-    // Check if trying to save and already at limit
-    if (!wasSaved) {
-      const savedCount = await countSavedJobs();
-      if (savedCount >= 10) {
-        toast.error(
-          "Maximum 10 saved files allowed. Please remove a file first.",
-        );
-        return;
-      }
+    if (currentJob.saved) {
+      const toggleJobSavedStore = useJobStore.getState().toggleJobSaved;
+      await toggleJobSavedStore(currentJob.id);
+      toast.success("File unsaved");
+      return;
     }
+    const nameWithoutExt = (
+      currentJob.input.fileName || `stt_${currentJob.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+    setSaveFileName(nameWithoutExt);
+    setIsSaving(true);
+  };
+
+  const handleSaveConfirm = async () => {
+    if (!currentJob) return;
+    const savedCount = await countSavedJobs("stt");
+    if (savedCount >= 10) {
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `stt_${currentJob.jobId}`,
+      "stt",
+      currentJob.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
+      return;
+    }
+
+    const updateJob = useJobStore.getState().updateJob;
+    updateJob(currentJob.id, {
+      input: {
+        ...currentJob.input,
+        fileName: saveFileName.trim() || `stt_${currentJob.jobId}`,
+      },
+    });
 
     const toggleJobSavedStore = useJobStore.getState().toggleJobSaved;
     await toggleJobSavedStore(currentJob.id);
+    setIsSaving(false);
+    toast.success("File saved!");
+  };
 
-    toast.success(wasSaved ? "File unsaved" : "File saved!");
+  const handleSaveCancel = () => {
+    setIsSaving(false);
+    setSaveFileName("");
   };
 
   const fetchSRTData = async (jobId: number) => {
@@ -268,8 +305,9 @@ export function STTPage() {
       // TODO: SSE will notify us when complete (Phase 2)
       // For now, we can poll or wait for SSE notification
     } catch (error) {
-
-      toast.error("Failed to submit transcription. Reason for invalid data when processing input;");
+      toast.error(
+        "Failed to submit transcription. Reason for invalid data when processing input;",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -305,6 +343,8 @@ export function STTPage() {
     setSettingsChanged(false);
     setWavesurferInstance(null);
     setHighlightingEnabled(false);
+    setIsSaving(false);
+    setSaveFileName("");
   };
 
   // Input section content
@@ -350,12 +390,10 @@ export function STTPage() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Transcribed Text</h3>
 
-          {/* Action Icons - Only show when result exists */}
           {transcriptionResult && (
             <div className="flex items-center gap-1">
               {isEditing ? (
                 <>
-                  {/* Save Button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -371,8 +409,6 @@ export function STTPage() {
                       <p>Save changes</p>
                     </TooltipContent>
                   </Tooltip>
-
-                  {/* Cancel Button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -389,9 +425,53 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
                 </>
+              ) : isSaving ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={saveFileName}
+                    onChange={(e) => setSaveFileName(e.target.value)}
+                    className="h-8 text-sm border rounded px-2 w-40 focus:outline-none focus:ring-1 focus:ring-ring"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveConfirm();
+                      if (e.key === "Escape") handleSaveCancel();
+                    }}
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700"
+                        onClick={handleSaveConfirm}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Confirm save</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                        onClick={handleSaveCancel}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cancel</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               ) : (
                 <>
-                  {/* Copy Button */}
+                  {/* Copy */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -411,7 +491,7 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Download Button */}
+                  {/* Download */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -425,7 +505,7 @@ export function STTPage() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement("a");
                           a.href = url;
-                          a.download = `transcription_${currentJobId}.txt`;
+                          a.download = `${currentJob?.input.fileName || `transcription_${currentJobId}`}.txt`;
                           a.click();
                           URL.revokeObjectURL(url);
                         }}
@@ -438,7 +518,7 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Edit Button */}
+                  {/* Edit */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -455,14 +535,14 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Save/Unsave Button */}
+                  {/* Save/Unsave */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 cursor-pointer"
-                        onClick={handleToggleSave}
+                        onClick={handleSaveClick}
                       >
                         {currentJob?.saved ? (
                           <SaveOff className="h-4 w-4" />
@@ -476,7 +556,7 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Font Size Toggle */}
+                  {/* Font Size */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -509,7 +589,7 @@ export function STTPage() {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Add Highlighting Toggle - Only show if SRT available and model supports it */}
+                  {/* Highlighting Toggle */}
                   {srtText &&
                     selectedModel === "mms-1b-all" &&
                     !currentJob?.output?.textWasEdited && (
@@ -524,9 +604,7 @@ export function STTPage() {
                             }
                           >
                             <Highlighter
-                              className={`h-4 w-4 ${
-                                highlightingEnabled ? "text-primary" : ""
-                              }`}
+                              className={`h-4 w-4 ${highlightingEnabled ? "text-primary" : ""}`}
                             />
                           </Button>
                         </TooltipTrigger>
@@ -539,7 +617,7 @@ export function STTPage() {
                       </Tooltip>
                     )}
 
-                  {/* Info HoverCard */}
+                  {/* Info */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HoverCard openDelay={0} closeDelay={0}>
@@ -611,7 +689,6 @@ export function STTPage() {
         </div>
 
         {transcriptionResult ? (
-          // Show actual result
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 p-4 bg-background rounded-lg overflow-y-auto">
               {isEditing ? (
@@ -659,7 +736,6 @@ export function STTPage() {
             </div>
           </div>
         ) : (
-          // Show processing state
           <div className="flex flex-col items-center justify-center h-full space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <div className="text-center">
@@ -675,12 +751,9 @@ export function STTPage() {
               <p>• Model: {selectedModel}</p>
               <p>• Device: {device.toUpperCase()}</p>
             </div>
-
-            {/* Cancel Button */}
             <Button
               variant="outline"
               onClick={() => {
-                // Update job status in store to stop polling
                 if (currentJobId) {
                   updateJobByJobId(currentJobId, {
                     status: "failed",
@@ -688,15 +761,11 @@ export function STTPage() {
                     error: "Cancelled by user",
                   });
                 }
-
-                // Reset UI state
                 setShowOutput(false);
                 setCurrentJobId(null);
                 setTranscriptionResult("");
                 setSrtText(null);
                 setSettingsChanged(false);
-
-                // Show toast
                 toast.info("Transcription cancelled");
               }}
               className="mt-4 min-w-50 text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 cursor-pointer"
@@ -773,12 +842,13 @@ export function STTPage() {
 
   return (
     <FeatureLayout
-      featureName="Speech To Text"
+      featureName="Audio Transcription"
       featureType="stt"
       settingsContent={settingsContent}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       showNewButton={hasSubmitted}
+      showOutput={showOutput}
       onNew={handleNew}
     >
       <SplitView

@@ -80,7 +80,7 @@ export function STSSettings({
       <div className="flex border-b">
         <button
           onClick={() => onTabChange("input")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${
             activeTab === "input"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -90,7 +90,7 @@ export function STSSettings({
         </button>
         <button
           onClick={() => onTabChange("output")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium cursor-pointer border-b-2 transition-colors ${
             activeTab === "output"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -118,7 +118,7 @@ export function STSSettings({
           <div className="space-y-2">
             <button
               onClick={() => setShowSupportedLanguages(!showSupportedLanguages)}
-              className="w-full flex items-center justify-between text-sm font-medium hover:text-primary transition-colors"
+              className="w-full flex items-center cursor-pointer justify-between text-sm font-medium hover:text-primary transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-muted-foreground" />
@@ -148,7 +148,7 @@ export function STSSettings({
                     {supportedSearch && (
                       <button
                         onClick={() => setSupportedSearch("")}
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -214,7 +214,7 @@ export function STSSettings({
                     {targetSearch && (
                       <button
                         onClick={() => setTargetSearch("")}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-accent rounded p-0.5 cursor-pointer"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -231,7 +231,7 @@ export function STSSettings({
                           setTargetOpen(false);
                           setTargetSearch("");
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors ${
+                        className={`w-full text-left px-3 py-2 text-sm cursor-pointer hover:bg-accent transition-colors ${
                           targetLanguage === lang.code
                             ? "bg-accent font-medium"
                             : ""

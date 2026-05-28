@@ -1,7 +1,16 @@
 // src/components/STSJobDetailModal.tsx
 
 import { useState, useEffect, useRef } from "react";
-import { Download, Info, Pause, Play, SaveOff, Save, Check, X } from "lucide-react";
+import {
+  Download,
+  Info,
+  Pause,
+  Play,
+  SaveOff,
+  Save,
+  Check,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +32,7 @@ import { toast } from "sonner";
 import WaveSurfer from "wavesurfer.js";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/jobStore";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 
 interface STSJobDetailModalProps {
   job: Job | null;
@@ -31,8 +40,14 @@ interface STSJobDetailModalProps {
   onClose: () => void;
 }
 
-export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalProps) {
-  const liveJob = useJobStore((state) => state.jobs.find((j) => j.id === job?.id));
+export function STSJobDetailModal({
+  job,
+  isOpen,
+  onClose,
+}: STSJobDetailModalProps) {
+  const liveJob = useJobStore((state) =>
+    state.jobs.find((j) => j.id === job?.id),
+  );
   const currentJobData = liveJob || job;
 
   // Output audio state
@@ -74,7 +89,9 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
     setOutputAudioUrl(url);
     setIsOutputPlaying(false);
 
-    return () => { URL.revokeObjectURL(url); };
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [isOpen, currentJobData?.output?.audioBlobs]);
 
   // Effect — create output WaveSurfer
@@ -82,7 +99,10 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
     if (!isOpen || !outputAudioUrl) return;
 
     const init = () => {
-      if (!outputWaveformRef.current) { setTimeout(init, 100); return; }
+      if (!outputWaveformRef.current) {
+        setTimeout(init, 100);
+        return;
+      }
 
       if (outputWavesurferRef.current) {
         outputWavesurferRef.current.destroy();
@@ -116,7 +136,10 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
     if (!isOpen || !currentJobData?.input.audioBlob) return;
 
     const init = () => {
-      if (!inputWaveformRef.current) { setTimeout(init, 100); return; }
+      if (!inputWaveformRef.current) {
+        setTimeout(init, 100);
+        return;
+      }
 
       if (inputWavesurferRef.current) {
         inputWavesurferRef.current.destroy();
@@ -157,16 +180,35 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
       return;
     }
 
-    setSaveFileName(currentJobData.input.fileName || `sts_${currentJobData.jobId}`);
+
+    const nameWithoutExt = (
+      currentJobData.input.fileName || `sts_${currentJobData.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+    setSaveFileName(nameWithoutExt);
     setIsSaving(true);
   };
 
   const handleSaveConfirm = async () => {
     if (!currentJobData) return;
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("sts");
     if (savedCount >= 10) {
-      toast.error("Maximum 10 saved files allowed. Please remove a file first.");
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `sts_${currentJobData.jobId}`,
+      "sts",
+      currentJobData.id,
+    );
+
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -183,13 +225,17 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
     toast.success("File saved!");
   };
 
-  const handleSaveCancel = () => { setIsSaving(false); setSaveFileName(""); };
+  const handleSaveCancel = () => {
+    setIsSaving(false);
+    setSaveFileName("");
+  };
 
   const handleDownload = () => {
     if (!outputAudioUrl) return;
     const a = document.createElement("a");
     a.href = outputAudioUrl;
-    a.download = currentJobData?.input.fileName || `sts_${currentJobData?.jobId}.wav`;
+    a.download =
+      currentJobData?.input.fileName || `sts_${currentJobData?.jobId}.wav`;
     a.click();
   };
 
@@ -204,18 +250,20 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
       >
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>
-            <h2 className="text-xl font-semibold">AI Voice Translation</h2>
+            <h2 className="text-xl font-semibold">Audio Translation</h2>
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 mt-6">
-
           {/* Input audio player */}
           <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
             <h3 className="text-sm font-semibold">Input Audio</h3>
             {currentJobData?.input.audioBlob ? (
               <div className="border rounded-lg p-4 bg-background">
-                <div ref={inputWaveformRef} className="w-full overflow-hidden" />
+                <div
+                  ref={inputWaveformRef}
+                  className="w-full overflow-hidden"
+                />
                 <div className="flex items-center gap-3 mt-3">
                   <Button
                     variant="outline"
@@ -223,7 +271,11 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
                     className="h-9 w-9 cursor-pointer shrink-0"
                     onClick={() => inputWavesurferRef.current?.playPause()}
                   >
-                    {isInputPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {isInputPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <span className="text-xs text-muted-foreground truncate">
                     {currentJobData?.input.fileName}
@@ -231,7 +283,9 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">{currentJobData?.input.fileName}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentJobData?.input.fileName}
+              </p>
             )}
           </div>
 
@@ -256,68 +310,120 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
                       />
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700" onClick={handleSaveConfirm}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700"
+                            onClick={handleSaveConfirm}
+                          >
                             <Check className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Confirm save</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Confirm save</p>
+                        </TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700" onClick={handleSaveCancel}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={handleSaveCancel}
+                          >
                             <X className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Cancel</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Cancel</p>
+                        </TooltipContent>
                       </Tooltip>
                     </div>
                   ) : (
                     <>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={handleDownload}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={handleDownload}
+                          >
                             <Download className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Download audio</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Download audio</p>
+                        </TooltipContent>
                       </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={handleToggleSave}>
-                            {currentJobData?.saved ? <SaveOff className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={handleToggleSave}
+                          >
+                            {currentJobData?.saved ? (
+                              <SaveOff className="h-4 w-4" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>{currentJobData?.saved ? "Unsave" : "Save"}</p></TooltipContent>
+                        <TooltipContent>
+                          <p>{currentJobData?.saved ? "Unsave" : "Save"}</p>
+                        </TooltipContent>
                       </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HoverCard openDelay={0} closeDelay={0}>
                             <HoverCardTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer"
+                              >
                                 <Info className="h-4 w-4" />
                               </Button>
                             </HoverCardTrigger>
                             <HoverCardContent className="w-60">
                               <div className="space-y-3">
-                                <h4 className="font-semibold text-sm">Job Information</h4>
+                                <h4 className="font-semibold text-sm">
+                                  Job Information
+                                </h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">Job ID:</span>
+                                    <span className="text-muted-foreground shrink-0">
+                                      Job ID:
+                                    </span>
                                     <span>{currentJobData?.jobId}</span>
                                   </div>
                                   <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">Target:</span>
-                                    <span>{currentJobData?.input.params?.language}</span>
+                                    <span className="text-muted-foreground shrink-0">
+                                      Target:
+                                    </span>
+                                    <span>
+                                      {currentJobData?.input.params?.language}
+                                    </span>
                                   </div>
                                   <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">Model:</span>
-                                    <span className="text-right">{currentJobData?.input.params?.model}</span>
+                                    <span className="text-muted-foreground shrink-0">
+                                      Model:
+                                    </span>
+                                    <span className="text-right">
+                                      {currentJobData?.input.params?.model}
+                                    </span>
                                   </div>
                                   <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">Device:</span>
-                                    <span>{currentJobData?.input.params?.device?.toUpperCase()}</span>
+                                    <span className="text-muted-foreground shrink-0">
+                                      Device:
+                                    </span>
+                                    <span>
+                                      {currentJobData?.input.params?.device?.toUpperCase()}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -331,7 +437,10 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
               </div>
 
               <div className="border rounded-lg p-4 bg-background">
-                <div ref={outputWaveformRef} className="w-full overflow-hidden" />
+                <div
+                  ref={outputWaveformRef}
+                  className="w-full overflow-hidden"
+                />
                 <div className="flex items-center gap-3 mt-3">
                   <Button
                     variant="outline"
@@ -339,7 +448,11 @@ export function STSJobDetailModal({ job, isOpen, onClose }: STSJobDetailModalPro
                     className="h-9 w-9 cursor-pointer shrink-0"
                     onClick={() => outputWavesurferRef.current?.playPause()}
                   >
-                    {isOutputPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {isOutputPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <span className="text-xs text-muted-foreground truncate">
                     {currentJobData?.input.fileName}

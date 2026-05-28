@@ -23,7 +23,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 import {
   Tooltip,
   TooltipContent,
@@ -344,12 +344,24 @@ export function TTTPage() {
 
   const handleSaveConfirm = async () => {
     if (!currentJob) return;
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("ttt");
     if (savedCount >= 10) {
       toast.error(
         "Maximum 10 saved files allowed. Please remove a file first.",
       );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `ttt_${currentJob.jobId}`,
+      "ttt",
+      currentJob.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -382,7 +394,7 @@ export function TTTPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `translation_${currentJobId}.txt`;
+    a.download = `${currentJob?.input.fileName || `translation_${currentJobId}`}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -411,7 +423,8 @@ export function TTTPage() {
   );
 
   const inputContent = (
-    <div className="h-full p-6 flex flex-col gap-4">
+    <div className="h-full p-6 flex flex-col gap-4 justify-center">
+
       {/* Text input area */}
       <div
         className={`relative border rounded-lg transition-colors ${
@@ -427,7 +440,7 @@ export function TTTPage() {
             if (hasSubmitted && translatedText) setContentChanged(true);
           }}
           placeholder="Enter text to translate, or upload a file..."
-          rows={6}
+          rows={10}
           className="w-full p-3 text-sm bg-transparent rounded-lg resize-none focus:outline-none focus:ring-0"
         />
 
@@ -447,15 +460,22 @@ export function TTTPage() {
               onChange={handleFileUpload}
               className="hidden"
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-7 text-xs cursor-pointer gap-1 text-muted-foreground hover:text-foreground"
-            >
-              <Upload className="h-3 w-3" />
-              Upload file
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-7 text-xs cursor-pointer gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <Upload className="h-3 w-3" />
+                  Upload
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>txt , docx • up to 1MB</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -808,6 +828,7 @@ export function TTTPage() {
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       showNewButton={hasSubmitted}
+      showOutput={showOutput}
       onNew={handleNew}
     >
       <SplitView

@@ -94,7 +94,8 @@ export function Header({
           </Tooltip>
 
           {/* Notifications / Files */}
-          <div className="relative">
+          {isLoggedIn &&
+            <div className="relative">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -120,7 +121,7 @@ export function Header({
               onClose={() => setIsNotificationOpen(false)}
               onOpenJob={(job) => setSelectedJob(job)}
             />
-          </div>
+          </div>}
 
           {/* Login/Logout */}
           {isLoggedIn ? (

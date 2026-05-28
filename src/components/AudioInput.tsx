@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import WaveSurfer from "wavesurfer.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB in bytes
 const ALLOWED_EXTENSIONS = [".wav", ".mp3", ".ogg"];
@@ -126,7 +127,7 @@ export function AudioInput({
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
-      return `File size exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
+      return `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
     }
 
     const fileName = file.name.toLowerCase();
@@ -172,6 +173,7 @@ export function AudioInput({
     if (file) {
       handleFileSelect(file, false);
     }
+    e.target.value = "";
   };
 
   const handleRemove = () => {
@@ -187,6 +189,7 @@ export function AudioInput({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    toast.info("Audio removed - add a new audio to continue");
     onRemove?.();
   };
 

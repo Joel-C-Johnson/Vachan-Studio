@@ -8,6 +8,7 @@ import { sseManager } from "@/services/sseManager";
 import { useAuthStore } from "@/store/authStore";
 import { useJobStore } from "@/store/jobStore";
 import { deleteUnsavedJobs, dismissAllJobs } from "@/services/indexedDB";
+import { toast } from "sonner";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export function Layout() {
 
       // Disconnect SSE
       sseManager.disconnect();
-
+      toast.success("Logged out successfully");
       // Navigate to home
       navigate("/");
 
@@ -64,6 +65,7 @@ export function Layout() {
       // Still logout even if cleanup fails
       logout();
       sseManager.disconnect();
+      toast.error("Logged out successfully, but failed to clean up local data");
       navigate("/");
     }
   };

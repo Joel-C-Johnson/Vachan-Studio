@@ -441,7 +441,7 @@ function ModelGroup({ group }: { group: (typeof MODEL_GROUPS)[0] }) {
     <div className="border rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors text-left"
+        className="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors text-left cursor-pointer"
       >
         <div>
           <h3 className="font-semibold text-sm">{group.title}</h3>
@@ -506,7 +506,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${
+              className={`px-4 py-3 text-sm font-medium cursor-pointer border-b-2 transition-colors capitalize ${
                 activeTab === tab
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -563,13 +563,13 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   speech recognition, text-to-speech, text translation, and
                   audio translation — all in one place.
                 </p>
-                <p className="text-sm text-muted-foreground">
+                {/* <p className="text-sm text-muted-foreground">
                   Built by{" "}
                   <span className="font-medium text-foreground">
                     Joel C Johnson
                   </span>{" "}
                   · Bridge Connectivity Solutions (BCS)
-                </p>
+                </p> */}
               </div>
 
               {/* Current features */}

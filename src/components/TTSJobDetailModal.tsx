@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import WaveSurfer from "wavesurfer.js";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/jobStore";
-import { countSavedJobs } from "@/services/indexedDB";
+import { checkDuplicateFileName, countSavedJobs } from "@/services/indexedDB";
 
 interface TTSJobDetailModalProps {
   job: Job | null;
@@ -170,9 +170,11 @@ export function TTSJobDetailModal({
       handleUnsave();
       return;
     }
-    setSaveFileName(
-      currentJobData.input.fileName || `tts_${currentJobData.jobId}`,
-    );
+
+    const nameWithoutExt = (
+      currentJobData.input.fileName || `tts_${currentJobData.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+    setSaveFileName(nameWithoutExt);
     setIsSaving(true);
   };
 
@@ -185,12 +187,24 @@ export function TTSJobDetailModal({
   const handleSaveConfirm = async () => {
     if (!currentJobData) return;
 
-    const savedCount = await countSavedJobs();
+    const savedCount = await countSavedJobs("tts");
     if (savedCount >= 10) {
       toast.error(
         "Maximum 10 saved files allowed. Please remove a file first.",
       );
       setIsSaving(false);
+      return;
+    }
+
+    const isDuplicate = await checkDuplicateFileName(
+      saveFileName.trim() || `tts_${currentJobData.jobId}`,
+      "tts",
+      currentJobData.id,
+    );
+    if (isDuplicate) {
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
 
@@ -251,7 +265,7 @@ export function TTSJobDetailModal({
       >
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>
-            <h2 className="text-xl font-semibold">Text To Speech</h2>
+            <h2 className="text-xl font-semibold">Audio Generation</h2>
           </DialogTitle>
         </DialogHeader>
 
