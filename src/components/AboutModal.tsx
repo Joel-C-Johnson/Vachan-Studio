@@ -321,13 +321,13 @@ const MODEL_GROUPS: {
 const CURRENT_FEATURES = [
   {
     icon: Mic,
-    title: "Voice Transcription",
+    title: "Audio Transcription",
     desc: "Convert speech to text in 1000+ languages",
     color: "bg-purple-500",
   },
   {
     icon: Volume2,
-    title: "Text to Speech",
+    title: "Audio Generation",
     desc: "Generate natural speech from text",
     color: "bg-pink-500",
   },
@@ -491,7 +491,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold">AI UI</h2>
+                <h2 className="text-xl font-semibold">Vachan AI Playground</h2>
                 <p className="text-sm text-muted-foreground font-normal">
                   AI Feature Showcase by BCS
                 </p>
@@ -536,7 +536,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                     finetune the model for new languages. Please reach out to
                     us.
                   </p>
-                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                  {/* <div className="flex flex-wrap gap-4 mt-2 text-sm">
                     <a
                       href="mailto:bcssupport@bridgeconn.com"
                       className="text-primary hover:underline flex items-center gap-1"
@@ -549,7 +549,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                     >
                       <Phone className="h-3 w-3" /> 8447646426
                     </a>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
@@ -557,7 +557,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <div className="space-y-2">
                 <h3 className="font-semibold">About</h3>
                 <p className="text-sm text-muted-foreground">
-                  AI UI is a showcase platform for BCS's AI-powered speech and
+                  Vachan AI Playground is a showcase platform for BCS's AI-powered speech and
                   language APIs. Built to help developers explore, test, and
                   integrate state-of-the-art multilingual AI models including
                   speech recognition, text-to-speech, text translation, and

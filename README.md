@@ -1,1 +1,1 @@
-# AI UI v2
+# Vachan AI Playground
