@@ -135,7 +135,7 @@ export function NotificationPanel({
                   {/* Icon */}
                   <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-xs font-semibold text-primary">
-                      {job.type.toUpperCase()}
+                          {job.type === "vc" ? "VC" : job.type === "nr" ? "NR" : job.type === "ae" ? "AE" : job.type.toUpperCase()}
                     </span>
                   </div>
 

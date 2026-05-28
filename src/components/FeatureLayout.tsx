@@ -22,7 +22,7 @@ import type { Job } from "@/types";
 
 interface FeatureLayoutProps {
   featureName: string;
-  featureType: "stt" | "tts" | "ttt" | "sts";
+  featureType: "stt" | "tts" | "ttt" | "sts" | "vc" | "nr" | "ae";
   children: ReactNode;
   settingsContent: ReactNode;
   showNewButton?: boolean;

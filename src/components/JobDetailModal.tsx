@@ -5,6 +5,7 @@ import { STTJobDetailModal } from "./STTJobDetailModal";
 import { TTSJobDetailModal } from "./TTSJobDetailModal";
 import { TTTJobDetailModal } from "./TTTJobDetailModal";
 import { STSJobDetailModal } from "./STSJobDetailModal";
+import { AudioToolsJobDetailModal } from "./AudioToolsJobDetailModal";
 
 interface JobDetailModalProps {
   job: Job | null;
@@ -26,5 +27,8 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
   if (job.type === "sts") {
     return <STSJobDetailModal job={job} isOpen={isOpen} onClose={onClose} />;
   }
+  if (job.type === "vc" || job.type === "nr" || job.type === "ae") {
+  return <AudioToolsJobDetailModal job={job} isOpen={isOpen} onClose={onClose} />;
+}
   return <STTJobDetailModal job={job} isOpen={isOpen} onClose={onClose} />;
 }

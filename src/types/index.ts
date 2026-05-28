@@ -1,6 +1,6 @@
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
 
-export type FeatureType = "stt" | "tts" | "ttt" | "sts";
+export type FeatureType = "stt" | "tts" | "ttt" | "sts" | "vc" | "nr" | "ae";
 
 // Our internal job representation
 export interface Job {

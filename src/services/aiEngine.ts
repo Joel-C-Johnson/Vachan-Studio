@@ -203,6 +203,119 @@ class AIEngineService {
     return data.data.jobId;
   }
 
+  async submitVoiceCloneJob(
+    inputAudio: File,
+    token: string,
+    params: {
+      output_format: string;
+      reference_speaker?: string;
+      input_language?: string;
+      enhance?: boolean;
+      reference_audio?: File;
+    },
+  ): Promise<number> {
+    const formData = new FormData();
+    formData.append("input_audios", inputAudio);
+    if (params.reference_audio) {
+      formData.append("reference_audio", params.reference_audio);
+    }
+
+    const url = new URL(`${API_BASE_URL}/model/audio/voice-clone`);
+    url.searchParams.append("model_name", "chatterbox");
+    url.searchParams.append("output_format", params.output_format);
+    if (params.reference_speaker)
+      url.searchParams.append("reference_speaker", params.reference_speaker);
+    if (params.input_language)
+      url.searchParams.append("input_language", params.input_language);
+    if (params.enhance !== undefined) {
+      url.searchParams.append("enhance", params.enhance ? "True" : "False");
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${errorText}`);
+    }
+
+    const data: SubmitJobResponse = await response.json();
+    return data.data.jobId;
+  }
+
+  async submitNoiseRemovalJob(
+    audioFile: File,
+    token: string,
+    params: {
+      output_format: string;
+      enhance?: boolean;
+      device?: string;
+    },
+  ): Promise<number> {
+    const formData = new FormData();
+    formData.append("files", audioFile);
+
+    const url = new URL(`${API_BASE_URL}/model/audio/noise-removal`);
+    url.searchParams.append("model_name", "DeepFilterNet3");
+    url.searchParams.append("output_format", params.output_format);
+    if (params.enhance !== undefined) {
+      url.searchParams.append("enhance", params.enhance ? "True" : "False");
+    }
+    if (params.device) url.searchParams.append("device", params.device);
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${errorText}`);
+    }
+
+    const data: SubmitJobResponse = await response.json();
+    return data.data.jobId;
+  }
+
+  async submitEnhanceJob(
+    audioFile: File,
+    token: string,
+    params: {
+      output_format: string;
+      denoise?: boolean;
+      device?: string;
+    },
+  ): Promise<number> {
+    const formData = new FormData();
+    formData.append("audio_file", audioFile);
+
+    const url = new URL(`${API_BASE_URL}/model/audio/enhance`);
+    url.searchParams.append("model_name", "resemble-enhance");
+    url.searchParams.append("output_format", params.output_format);
+    if (params.denoise !== undefined) {
+      url.searchParams.append("denoise", params.denoise ? "True" : "False");
+    }
+    if (params.device) url.searchParams.append("device", params.device);
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${errorText}`);
+    }
+
+    const data: SubmitJobResponse = await response.json();
+    return data.data.jobId;
+  }
+
   /**
    * Get job status and result
    */

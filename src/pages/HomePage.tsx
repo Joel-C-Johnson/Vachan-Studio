@@ -1,16 +1,8 @@
 // src/pages/HomePage.tsx
 
-import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { FeatureCard } from '../components/FeatureCard';
-import { ComingSoonModal } from '../components/ComingSoonModal';
-import {
-  Mic,
-  Volume2,
-  Languages,
-  Waves,
-  Sparkles
-} from 'lucide-react';
+import { useOutletContext } from "react-router-dom";
+import { FeatureCard } from "../components/FeatureCard";
+import { Mic, Volume2, Languages, Waves, Sparkles } from "lucide-react";
 
 interface OutletContext {
   onFeatureClick: (feature: string) => void;
@@ -18,53 +10,44 @@ interface OutletContext {
 
 export function HomePage() {
   const { onFeatureClick } = useOutletContext<OutletContext>();
-  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const features = [
     {
-      id: 'stt',
+      id: "stt",
       icon: Mic,
-      title: 'Audio Transcription',
-      description: 'Convert audio into accurate text using AI-powered speech recognition.',
-      iconColor: 'bg-purple-500'
+      title: "Audio Transcription",
+      description: "Convert audio into accurate text using AI-powered speech recognition.",
+      iconColor: "bg-purple-500",
     },
     {
-      id: 'tts',
+      id: "tts",
       icon: Volume2,
-      title: 'Audio Generation',
-      description: 'Convert text into natural, human-like speech using AI voices.',
-      iconColor: 'bg-pink-500'
+      title: "Audio Generation",
+      description: "Convert text into natural, human-like speech using AI voices.",
+      iconColor: "bg-pink-500",
     },
     {
-      id: 'ttt',
+      id: "ttt",
       icon: Languages,
-      title: 'Text Translation',
-      description: 'Translate text between languages instantly with high-quality AI translations.',
-      iconColor: 'bg-blue-500'
+      title: "Text Translation",
+      description: "Translate text between languages instantly with high-quality AI translations.",
+      iconColor: "bg-blue-500",
     },
     {
-      id: 'sts',
+      id: "sts",
       icon: Waves,
-      title: 'Audio Translation',
-      description: 'Translate audio from one language to another seamlessly.',
-      iconColor: 'bg-indigo-500'
+      title: "Audio Translation",
+      description: "Translate audio from one language to another seamlessly.",
+      iconColor: "bg-indigo-500",
     },
     {
-      id: 'mtf',
+      id: "audio-tools",
       icon: Sparkles,
-      title: 'More Features',
-      description: 'Explore upcoming AI-powered features including voice cloning, noise removal, audio enhancement and more.',
-      iconColor: 'bg-amber-500'
-    }
+      title: "Audio Tools",
+      description: "Voice cloning, noise removal and audio enhancement powered by AI.",
+      iconColor: "bg-amber-500",
+    },
   ];
-
-  const handleFeatureClick = (id: string) => {
-    if (id === 'mtf') {
-      setShowComingSoon(true);
-    } else {
-      onFeatureClick(id);
-    }
-  };
 
   return (
     <div className="min-h-screen pt-16">
@@ -86,16 +69,11 @@ export function HomePage() {
               title={feature.title}
               description={feature.description}
               iconColor={feature.iconColor}
-              onClick={() => handleFeatureClick(feature.id)}
+              onClick={() => onFeatureClick(feature.id)}
             />
           ))}
         </div>
       </div>
-
-      <ComingSoonModal
-        isOpen={showComingSoon}
-        onClose={() => setShowComingSoon(false)}
-      />
     </div>
   );
 }

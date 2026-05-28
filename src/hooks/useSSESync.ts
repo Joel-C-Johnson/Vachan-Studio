@@ -8,7 +8,9 @@ import { toast } from "sonner";
 
 export function useSSESync(token: string | null) {
   const { getActiveJobs, updateJobByJobId } = useJobStore();
-  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const fetchingJobsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -46,14 +48,23 @@ export function useSSESync(token: string | null) {
                   data: result.data.output,
                 },
               });
-
-            } else if (job.type === "tts" || job.type === "sts") {
+            } else if (
+              job.type === "tts" ||
+              job.type === "sts" ||
+              job.type === "vc" ||
+              job.type === "nr" ||
+              job.type === "ae"
+            ) {
+              // TTS/STS/VC/NR/AE audio is fetched separately via assets API
               // Skip if already fetching assets for this job
               if (fetchingJobsRef.current.has(job.jobId)) continue;
               fetchingJobsRef.current.add(job.jobId);
 
               try {
-                const zipBlob = await aiEngineService.getJobAssets(job.jobId, token);
+                const zipBlob = await aiEngineService.getJobAssets(
+                  job.jobId,
+                  token,
+                );
                 const extracted = await extractAudioFromZip(zipBlob);
 
                 extracted.sort((a, b) => a.name.localeCompare(b.name));
@@ -69,7 +80,11 @@ export function useSSESync(token: string | null) {
                   },
                 });
               } catch (assetError) {
-                console.error("Failed to fetch assets for job:", job.jobId, assetError);
+                console.error(
+                  "Failed to fetch assets for job:",
+                  job.jobId,
+                  assetError,
+                );
                 // Still mark as completed even if asset fetch fails
                 updateJobByJobId(job.jobId, {
                   status: "completed",
@@ -81,7 +96,6 @@ export function useSSESync(token: string | null) {
               } finally {
                 fetchingJobsRef.current.delete(job.jobId);
               }
-
             } else if (job.type === "ttt") {
               const translatedText =
                 result.data.output?.translations
@@ -96,7 +110,6 @@ export function useSSESync(token: string | null) {
                   data: result.data.output,
                 },
               });
-
             } else {
               updateJobByJobId(job.jobId, {
                 status: "completed",
@@ -106,10 +119,8 @@ export function useSSESync(token: string | null) {
                 },
               });
             }
-
           } else if (result.data.status === "job is in progress") {
             updateJobByJobId(job.jobId, { status: "processing" });
-
           } else if (
             result.data.status === "job failed" ||
             result.data.status === "Error"

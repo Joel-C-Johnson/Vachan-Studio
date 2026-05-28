@@ -7,6 +7,7 @@ import { STTPage } from "./pages/STTPage";
 import { TTSPage } from "./pages/TTSPage";
 import { TTTPage } from "./pages/TTTPage";
 import { STSPage } from "./pages/STSPage";
+import { AudioToolsPage } from "./pages/AudioToolsPage";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
       {
         path: "/sts",
         element: <STSPage />,
+      },
+      {
+        path: "/audio-tools",
+        element: <AudioToolsPage />,
       },
     ],
   },

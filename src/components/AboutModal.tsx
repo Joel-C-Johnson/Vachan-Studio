@@ -343,9 +343,6 @@ const CURRENT_FEATURES = [
     desc: "Translate speech to another language",
     color: "bg-indigo-500",
   },
-];
-
-const COMING_SOON = [
   {
     icon: Sparkles,
     title: "Noise Removal",
@@ -365,6 +362,27 @@ const COMING_SOON = [
     color: "bg-red-500",
   },
 ];
+
+// const COMING_SOON = [
+//   {
+//     icon: Sparkles,
+//     title: "Noise Removal",
+//     desc: "Remove background noise from audio",
+//     color: "bg-green-500",
+//   },
+//   {
+//     icon: Sparkles,
+//     title: "Voice Cloning",
+//     desc: "Clone and convert voice tones",
+//     color: "bg-orange-500",
+//   },
+//   {
+//     icon: Sparkles,
+//     title: "Audio Enhancement",
+//     desc: "Boost and restore audio quality",
+//     color: "bg-red-500",
+//   },
+// ];
 
 function ModelCard({ model }: { model: ModelInfo }) {
   return (
@@ -597,7 +615,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 </div>
               </div>
 
-              {/* Coming soon */}
+              {/* Coming soon
               <div className="space-y-3">
                 <h3 className="font-semibold">Coming Soon</h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -620,7 +638,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
 
