@@ -6,9 +6,17 @@ import {
   getAllJobsFromDB,
 } from "@/services/indexedDB";
 
+interface HandoffAudio {
+  blob: Blob;
+  fileName: string;
+  subFeature: "vc" | "nr" | "ae";
+}
+
 interface JobStore {
   jobs: Job[];
-  isLoaded: boolean; // Track if we've loaded from IndexedDB
+  isLoaded: boolean;
+  handoffAudio: HandoffAudio | null;
+  setHandoffAudio: (handoff: HandoffAudio | null) => void;
 
   // Actions
   addJob: (
@@ -76,6 +84,8 @@ function storedJobToJob(stored: StoredJob): Job {
 export const useJobStore = create<JobStore>((set, get) => ({
   jobs: [],
   isLoaded: false,
+  handoffAudio: null,
+  setHandoffAudio: (handoff) => set({ handoffAudio: handoff }),
 
   // Load jobs from IndexedDB on app start
   loadJobsFromDB: async () => {

@@ -180,7 +180,6 @@ export function STSJobDetailModal({
       return;
     }
 
-
     const nameWithoutExt = (
       currentJobData.input.fileName || `sts_${currentJobData.jobId}`
     ).replace(/\.[^/.]+$/, "");
@@ -214,9 +213,9 @@ export function STSJobDetailModal({
 
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJobData.id, {
-      input: {
-        ...currentJobData.input,
-        fileName: saveFileName.trim() || `sts_${currentJobData.jobId}`,
+      output: {
+        ...currentJobData.output,
+        savedFileName: saveFileName.trim() || `sts_${currentJobData.jobId}`,
       },
     });
 
@@ -232,10 +231,15 @@ export function STSJobDetailModal({
 
   const handleDownload = () => {
     if (!outputAudioUrl) return;
+    const name =
+      currentJobData?.output?.savedFileName ||
+      currentJobData?.input.fileName ||
+      `sts_${currentJobData?.jobId}`;
+    const savedName = name.replace(/\.[^/.]+$/, "");
+    const ext = currentJobData?.input.params?.outputFormat || "wav";
     const a = document.createElement("a");
     a.href = outputAudioUrl;
-    a.download =
-      currentJobData?.input.fileName || `sts_${currentJobData?.jobId}.wav`;
+    a.download = `${savedName}.${ext}`;
     a.click();
   };
 
@@ -455,7 +459,16 @@ export function STSJobDetailModal({
                     )}
                   </Button>
                   <span className="text-xs text-muted-foreground truncate">
-                    {currentJobData?.input.fileName}
+                    {(() => {
+                      const ext =
+                        currentJobData?.input.params?.outputFormat || "wav";
+                      const name =
+                        currentJobData?.output?.savedFileName ||
+                        currentJobData?.input.fileName;
+                      return name
+                        ? `${name.replace(/\.[^/.]+$/, "")}.${ext}`
+                        : `output.${ext}`;
+                    })()}
                   </span>
                 </div>
               </div>

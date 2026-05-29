@@ -1,7 +1,16 @@
 // src/components/AudioToolsJobDetailModal.tsx
 
 import { useState, useEffect, useRef } from "react";
-import { Download, Info, Pause, Play, SaveOff, Save, Check, X } from "lucide-react";
+import {
+  Download,
+  Info,
+  Pause,
+  Play,
+  SaveOff,
+  Save,
+  Check,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -81,7 +90,9 @@ export function AudioToolsJobDetailModal({
     setOutputAudioUrl(url);
     setIsPlaying(false);
 
-    return () => { URL.revokeObjectURL(url); };
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [isOpen, currentJobData?.output?.audioBlobs]);
 
   // Effect 2 — create output WaveSurfer
@@ -89,12 +100,18 @@ export function AudioToolsJobDetailModal({
     if (!isOpen || !outputAudioUrl) return;
 
     const init = () => {
-      if (!outputWaveformRef.current) { setTimeout(init, 100); return; }
+      if (!outputWaveformRef.current) {
+        setTimeout(init, 100);
+        return;
+      }
       if (outputWavesurferRef.current) {
         outputWavesurferRef.current.destroy();
         outputWavesurferRef.current = null;
       }
-      const ws = WaveSurfer.create({ container: outputWaveformRef.current, ...wavesurferConfig });
+      const ws = WaveSurfer.create({
+        container: outputWaveformRef.current,
+        ...wavesurferConfig,
+      });
       ws.on("play", () => setIsPlaying(true));
       ws.on("pause", () => setIsPlaying(false));
       ws.on("finish", () => setIsPlaying(false));
@@ -117,12 +134,18 @@ export function AudioToolsJobDetailModal({
     if (!isOpen || !currentJobData?.input.audioBlob) return;
 
     const init = () => {
-      if (!inputWaveformRef.current) { setTimeout(init, 100); return; }
+      if (!inputWaveformRef.current) {
+        setTimeout(init, 100);
+        return;
+      }
       if (inputWavesurferRef.current) {
         inputWavesurferRef.current.destroy();
         inputWavesurferRef.current = null;
       }
-      const ws = WaveSurfer.create({ container: inputWaveformRef.current, ...wavesurferConfig });
+      const ws = WaveSurfer.create({
+        container: inputWaveformRef.current,
+        ...wavesurferConfig,
+      });
       ws.on("play", () => setInputIsPlaying(true));
       ws.on("pause", () => setInputIsPlaying(false));
       ws.on("finish", () => setInputIsPlaying(false));
@@ -149,7 +172,10 @@ export function AudioToolsJobDetailModal({
       toast.success("File unsaved");
       return;
     }
-    const nameWithoutExt = (currentJobData.input.fileName || `${currentJobData.type}_${currentJobData.jobId}`).replace(/\.[^/.]+$/, "");
+    const nameWithoutExt = (
+      currentJobData.input.fileName ||
+      `${currentJobData.type}_${currentJobData.jobId}`
+    ).replace(/\.[^/.]+$/, "");
     setSaveFileName(nameWithoutExt);
     setIsSaving(true);
   };
@@ -158,23 +184,29 @@ export function AudioToolsJobDetailModal({
     if (!currentJobData) return;
     const savedCount = await countSavedJobs(currentJobData.type);
     if (savedCount >= 10) {
-      toast.error("Maximum 10 saved files allowed. Please remove a file first.");
+      toast.error(
+        "Maximum 10 saved files allowed. Please remove a file first.",
+      );
       setIsSaving(false);
       return;
     }
     const isDuplicate = await checkDuplicateFileName(
       saveFileName.trim() || `${currentJobData.type}_${currentJobData.jobId}`,
       currentJobData.type,
-      currentJobData.id
+      currentJobData.id,
     );
     if (isDuplicate) {
-      toast.error("A file with this name already exists. Please choose a different name.");
+      toast.error(
+        "A file with this name already exists. Please choose a different name.",
+      );
       return;
     }
     useJobStore.getState().updateJob(currentJobData.id, {
-      input: {
-        ...currentJobData.input,
-        fileName: saveFileName.trim() || `${currentJobData.type}_${currentJobData.jobId}`,
+      output: {
+        ...currentJobData.output,
+        savedFileName:
+          saveFileName.trim() ||
+          `${currentJobData.type}_${currentJobData.jobId}`,
       },
     });
     await toggleJobSavedStore(currentJobData.id);
@@ -182,19 +214,29 @@ export function AudioToolsJobDetailModal({
     toast.success("File saved!");
   };
 
-  const handleSaveCancel = () => { setIsSaving(false); setSaveFileName(""); };
+  const handleSaveCancel = () => {
+    setIsSaving(false);
+    setSaveFileName("");
+  };
 
   const handleDownload = () => {
     if (!outputAudioUrl) return;
+    const savedName = (
+      currentJobData?.output?.savedFileName ||
+      currentJobData?.input.fileName ||
+      `${currentJobData?.type}_${currentJobData?.jobId}`
+    ).replace(/\.[^/.]+$/, "");
     const a = document.createElement("a");
     a.href = outputAudioUrl;
-    a.download = currentJobData?.input.fileName || `output.wav`;
+    const ext = currentJobData?.input.params?.outputFormat || "wav";
+    a.download = `${savedName}.${ext}`;
     a.click();
   };
 
   if (!job) return null;
 
-  const featureLabel = FEATURE_LABELS[currentJobData?.type || ""] || "Audio Tools";
+  const featureLabel =
+    FEATURE_LABELS[currentJobData?.type || ""] || "Audio Tools";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -215,19 +257,34 @@ export function AudioToolsJobDetailModal({
             <h3 className="text-sm font-semibold">Input Audio</h3>
             {currentJobData?.input.audioBlob ? (
               <div className="border rounded-lg p-4 bg-background">
-                <div ref={inputWaveformRef} className="w-full overflow-hidden" />
+                <div
+                  ref={inputWaveformRef}
+                  className="w-full overflow-hidden"
+                />
                 <div className="flex items-center gap-3 mt-3">
-                  <Button variant="outline" size="icon" className="h-9 w-9 cursor-pointer shrink-0"
-                    onClick={() => inputWavesurferRef.current?.playPause()}>
-                    {inputIsPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 cursor-pointer shrink-0"
+                    onClick={() => inputWavesurferRef.current?.playPause()}
+                  >
+                    {inputIsPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <span className="text-xs text-muted-foreground truncate">
-                    {currentJobData?.input.fileName}
+                    {currentJobData?.input.fileName
+                      ? `${currentJobData.input.fileName.replace(/\.[^/.]+$/, "")}.wav`
+                      : `output.wav`}
                   </span>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">{currentJobData?.input.fileName}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentJobData?.input.fileName}
+              </p>
             )}
           </div>
 
@@ -252,66 +309,116 @@ export function AudioToolsJobDetailModal({
                       />
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700" onClick={handleSaveConfirm}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700"
+                            onClick={handleSaveConfirm}
+                          >
                             <Check className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Confirm save</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Confirm save</p>
+                        </TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700" onClick={handleSaveCancel}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={handleSaveCancel}
+                          >
                             <X className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Cancel</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Cancel</p>
+                        </TooltipContent>
                       </Tooltip>
                     </div>
                   ) : (
                     <>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={handleDownload}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={handleDownload}
+                          >
                             <Download className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Download</p></TooltipContent>
+                        <TooltipContent>
+                          <p>Download</p>
+                        </TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={handleSaveClick}>
-                            {currentJobData?.saved ? <SaveOff className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={handleSaveClick}
+                          >
+                            {currentJobData?.saved ? (
+                              <SaveOff className="h-4 w-4" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>{currentJobData?.saved ? "Unsave" : "Save"}</p></TooltipContent>
+                        <TooltipContent>
+                          <p>{currentJobData?.saved ? "Unsave" : "Save"}</p>
+                        </TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HoverCard openDelay={0} closeDelay={0}>
                             <HoverCardTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer"
+                              >
                                 <Info className="h-4 w-4" />
                               </Button>
                             </HoverCardTrigger>
                             <HoverCardContent className="w-52">
                               <div className="space-y-3">
-                                <h4 className="font-semibold text-sm">Job Information</h4>
+                                <h4 className="font-semibold text-sm">
+                                  Job Information
+                                </h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Job ID:</span>
+                                    <span className="text-muted-foreground">
+                                      Job ID:
+                                    </span>
                                     <span>{currentJobData?.jobId}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Feature:</span>
+                                    <span className="text-muted-foreground">
+                                      Feature:
+                                    </span>
                                     <span>{featureLabel}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Model:</span>
-                                    <span>{currentJobData?.input.params?.model}</span>
+                                    <span className="text-muted-foreground">
+                                      Model:
+                                    </span>
+                                    <span>
+                                      {currentJobData?.input.params?.model}
+                                    </span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Device:</span>
-                                    <span>{currentJobData?.input.params?.device?.toUpperCase()}</span>
+                                    <span className="text-muted-foreground">
+                                      Device:
+                                    </span>
+                                    <span>
+                                      {currentJobData?.input.params?.device?.toUpperCase()}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -325,14 +432,34 @@ export function AudioToolsJobDetailModal({
               </div>
 
               <div className="border rounded-lg p-4 bg-background">
-                <div ref={outputWaveformRef} className="w-full overflow-hidden" />
+                <div
+                  ref={outputWaveformRef}
+                  className="w-full overflow-hidden"
+                />
                 <div className="flex items-center gap-3 mt-3">
-                  <Button variant="outline" size="icon" className="h-9 w-9 cursor-pointer shrink-0"
-                    onClick={() => outputWavesurferRef.current?.playPause()}>
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 cursor-pointer shrink-0"
+                    onClick={() => outputWavesurferRef.current?.playPause()}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <span className="text-xs text-muted-foreground truncate">
-                    {currentJobData?.input.fileName}
+                    {(() => {
+                      const ext =
+                        currentJobData?.input.params?.outputFormat || "wav";
+                      const name =
+                        currentJobData?.output?.savedFileName ||
+                        currentJobData?.input.fileName;
+                      return name
+                        ? `${name.replace(/\.[^/.]+$/, "")}.${ext}`
+                        : `output.${ext}`;
+                    })()}
                   </span>
                 </div>
               </div>

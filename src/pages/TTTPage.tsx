@@ -367,13 +367,10 @@ export function TTTPage() {
 
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJob.id, {
-      input: {
-        ...currentJob.input,
-        fileName: saveFileName.trim() || `ttt_${currentJob.jobId}`,
-      },
       output: {
         ...currentJob.output,
         translatedText,
+        savedFileName: saveFileName.trim() || `ttt_${currentJob.jobId}`,
       },
     });
 
@@ -394,7 +391,7 @@ export function TTTPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${currentJob?.input.fileName || `translation_${currentJobId}`}.txt`;
+    a.download = `${(currentJob?.output?.savedFileName || currentJob?.input.fileName || `translation_${currentJobId}`).replace(/\.[^/.]+$/, "")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -424,7 +421,6 @@ export function TTTPage() {
 
   const inputContent = (
     <div className="h-full p-6 flex flex-col gap-4 justify-center">
-
       {/* Text input area */}
       <div
         className={`relative border rounded-lg transition-colors ${

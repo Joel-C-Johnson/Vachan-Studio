@@ -129,6 +129,8 @@ export function AudioToolsPage() {
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [savedSectionOpen, setSavedSectionOpen] = useState(false);
+  const [handoffBannerFeature, setHandoffBannerFeature] =
+    useState<SubFeature | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   // Per sub-feature states
@@ -179,6 +181,9 @@ export function AudioToolsPage() {
 
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
+
+  const handoffAudio = useJobStore((state) => state.handoffAudio);
+  const setHandoffAudio = useJobStore((state) => state.setHandoffAudio);
 
   const { token } = useAuthStore();
   useSSESync(token);
@@ -354,6 +359,22 @@ export function AudioToolsPage() {
     };
   }, []);
 
+  // Read handoff audio on mount
+  useEffect(() => {
+    if (handoffAudio) {
+      const file = new File([handoffAudio.blob], handoffAudio.fileName, {
+        type: handoffAudio.blob.type || "audio/wav",
+      });
+      setActiveFeature(handoffAudio.subFeature);
+      setState(handoffAudio.subFeature)((prev) => ({
+        ...prev,
+        selectedFile: file,
+      }));
+      setHandoffBannerFeature(handoffAudio.subFeature);
+      setHandoffAudio(null);
+    }
+  }, []);
+
   const handleSpeakerPreview = (value: string, audioPath: string) => {
     if (speakerTimerRef.current) {
       clearTimeout(speakerTimerRef.current);
@@ -460,15 +481,30 @@ export function AudioToolsPage() {
                 : activeFeature === "ae"
                   ? aeDevice
                   : "cpu",
+            outputFormat:
+              activeFeature === "vc"
+                ? vcOutputFormat
+                : activeFeature === "nr"
+                  ? nrOutputFormat
+                  : aeOutputFormat,
           },
         },
       });
 
+      // Clear old audio so output panel shows processing state
+      if (currentState.audioFile)
+        URL.revokeObjectURL(currentState.audioFile.url);
+      if (wavesurferRef.current) {
+        wavesurferRef.current.destroy();
+        wavesurferRef.current = null;
+      }
       setCurrentState({
         currentJobId: jobId,
         showOutput: true,
         hasSubmitted: true,
         settingsChanged: false,
+        audioFile: null,
+        isLoadingAudio: false,
       });
 
       if (activeFeature === "vc") {
@@ -551,15 +587,14 @@ export function AudioToolsPage() {
     }
 
     useJobStore.getState().updateJob(currentJob.id, {
-      input: {
-        ...currentJob.input,
-        fileName: saveFileName.trim() || `${activeFeature}_${currentJob.jobId}`,
-      },
       output: {
         ...currentJob.output,
         audioBlobs: currentState.audioFile ? [currentState.audioFile.blob] : [],
+        savedFileName:
+          saveFileName.trim() || `${activeFeature}_${currentJob.jobId}`,
       },
     });
+
     await useJobStore.getState().toggleJobSaved(currentJob.id);
     setCurrentState({ outputFileName: saveFileName.trim() });
     setIsSaving(false);
@@ -573,9 +608,21 @@ export function AudioToolsPage() {
 
   const handleDownload = () => {
     if (!currentState.audioFile) return;
+    const savedName = (
+      currentJob?.output?.savedFileName ||
+      currentJob?.input.fileName ||
+      currentState.outputFileName ||
+      currentState.audioFile.name
+    ).replace(/\.[^/.]+$/, "");
     const a = document.createElement("a");
     a.href = currentState.audioFile.url;
-    a.download = currentState.outputFileName || currentState.audioFile.name;
+    const ext =
+      activeFeature === "vc"
+        ? vcOutputFormat
+        : activeFeature === "nr"
+          ? nrOutputFormat
+          : aeOutputFormat;
+    a.download = savedName.includes(".") ? savedName : `${savedName}.${ext}`;
     a.click();
   };
 
@@ -839,17 +886,31 @@ export function AudioToolsPage() {
   const inputContent = (
     <div className="h-full p-6 flex flex-col items-center justify-center">
       <div className="w-full space-y-6">
+        {handoffBannerFeature === activeFeature && (
+          <div className="flex items-center justify-between bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
+            <p className="text-xs text-primary font-medium">
+              🎵 Audio received from Audio Generation
+            </p>
+            <button
+              onClick={() => setHandoffBannerFeature(null)}
+              className="text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
         <AudioInput
           onFileSelect={(file) => setCurrentState({ selectedFile: file })}
           selectedFile={currentState.selectedFile}
-          onRemove={() =>
+          onRemove={() => {
             setCurrentState({
               selectedFile: null,
               showOutput: false,
               currentJobId: null,
               audioFile: null,
-            })
-          }
+            });
+            setHandoffBannerFeature(null);
+          }}
         />
         {currentState.selectedFile &&
           (!currentState.showOutput || currentState.settingsChanged) && (
@@ -1029,7 +1090,16 @@ export function AudioToolsPage() {
                 )}
               </Button>
               <span className="text-xs text-muted-foreground truncate">
-                {currentState.outputFileName || currentState.audioFile.name}
+                {(() => {
+                  const ext = currentJob?.input.params?.outputFormat || "wav";
+                  const name =
+                    currentJob?.output?.savedFileName ||
+                    currentJob?.input.fileName;
+                  return name
+                    ? `${name.replace(/\.[^/.]+$/, "")}.${ext}`
+                    : currentState.outputFileName ||
+                        currentState.audioFile.name;
+                })()}
               </span>
             </div>
           </div>
@@ -1198,7 +1268,9 @@ export function AudioToolsPage() {
                         onClick={() => setSelectedJob(job)}
                         className="text-xs p-2 hover:bg-accent rounded cursor-pointer flex items-center justify-between group"
                       >
-                        <span className="truncate">{job.input.fileName}</span>
+                        <span className="truncate">
+                          {job.output?.savedFileName || job.input.fileName}
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"

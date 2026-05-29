@@ -274,9 +274,9 @@ export function STTJobDetailModal({
     }
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJobData.id, {
-      input: {
-        ...currentJobData.input,
-        fileName: saveFileName.trim() || `stt_${currentJobData.jobId}`,
+      output: {
+        ...currentJobData.output,
+        savedFileName: saveFileName.trim() || `stt_${currentJobData.jobId}`,
       },
     });
     await toggleJobSavedStore(currentJobData.id);
@@ -461,7 +461,7 @@ export function STTJobDetailModal({
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement("a");
                             a.href = url;
-                            a.download = `${currentJobData?.input.fileName}_transcription.txt`;
+                            a.download = `${(currentJobData?.output?.savedFileName || currentJobData?.input.fileName || `stt_${currentJobData?.jobId}`).replace(/\.[^/.]+$/, "")}.txt`;
                             a.click();
                             URL.revokeObjectURL(url);
                           }}

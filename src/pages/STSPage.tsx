@@ -30,7 +30,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface AudioFile {
   name: string;
@@ -246,6 +250,7 @@ export function STSPage() {
             language: targetLanguage,
             model: "seamless-m4t-large",
             device,
+            outputFormat,
           },
         },
       });
@@ -330,13 +335,10 @@ export function STSPage() {
 
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJob.id, {
-      input: {
-        ...currentJob.input,
-        fileName: saveFileName.trim() || `sts_${currentJob.jobId}`,
-      },
       output: {
         ...currentJob.output,
         audioBlobs: audioFile ? [audioFile.blob] : [],
+        savedFileName: saveFileName.trim() || `sts_${currentJob.jobId}`,
       },
     });
 
@@ -353,9 +355,15 @@ export function STSPage() {
 
   const handleDownload = () => {
     if (!audioFile) return;
+    const name =
+      currentJob?.output?.savedFileName ||
+      currentJob?.input.fileName ||
+      `sts_${currentJobId}`;
+    const savedName = name.replace(/\.[^/.]+$/, "");
+    const ext = currentJob?.input.params?.outputFormat || outputFormat;
     const a = document.createElement("a");
     a.href = audioFile.url;
-    a.download = audioFile.name;
+    a.download = `${savedName}.${ext}`;
     a.click();
   };
 
@@ -500,59 +508,59 @@ export function STSPage() {
                   </Tooltip>
 
                   <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HoverCard openDelay={0} closeDelay={0}>
-                            <HoverCardTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 cursor-pointer"
-                              >
-                                <Info className="h-4 w-4" />
-                              </Button>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-60">
-                              <div className="space-y-3">
-                                <h4 className="font-semibold text-sm">
-                                  Job Information
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">
-                                      Job ID:
-                                    </span>
-                                    <span>{currentJob?.jobId}</span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">
-                                      Target:
-                                    </span>
-                                    <span>
-                                      {currentJob?.input.params?.language}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">
-                                      Model:
-                                    </span>
-                                    <span className="text-right">
-                                      {currentJob?.input.params?.model}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground shrink-0">
-                                      Device:
-                                    </span>
-                                    <span>
-                                      {currentJob?.input.params?.device?.toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
+                    <TooltipTrigger asChild>
+                      <HoverCard openDelay={0} closeDelay={0}>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-60">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm">
+                              Job Information
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between gap-2">
+                                <span className="text-muted-foreground shrink-0">
+                                  Job ID:
+                                </span>
+                                <span>{currentJob?.jobId}</span>
                               </div>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </TooltipTrigger>
-                      </Tooltip>
+                              <div className="flex justify-between gap-2">
+                                <span className="text-muted-foreground shrink-0">
+                                  Target:
+                                </span>
+                                <span>
+                                  {currentJob?.input.params?.language}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-2">
+                                <span className="text-muted-foreground shrink-0">
+                                  Model:
+                                </span>
+                                <span className="text-right">
+                                  {currentJob?.input.params?.model}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-2">
+                                <span className="text-muted-foreground shrink-0">
+                                  Device:
+                                </span>
+                                <span>
+                                  {currentJob?.input.params?.device?.toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </TooltipTrigger>
+                  </Tooltip>
                 </>
               )}
             </div>
@@ -577,7 +585,16 @@ export function STSPage() {
                   )}
                 </Button>
                 <span className="text-xs text-muted-foreground truncate">
-                  {audioFile.name}
+                  {(() => {
+                    const ext =
+                      currentJob?.input.params?.outputFormat || outputFormat;
+                    const name =
+                      currentJob?.output?.savedFileName ||
+                      currentJob?.input.fileName;
+                    return name
+                      ? `${name.replace(/\.[^/.]+$/, "")}.${ext}`
+                      : audioFile.name;
+                  })()}
                 </span>
               </div>
             </div>

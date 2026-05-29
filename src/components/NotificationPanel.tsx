@@ -135,14 +135,22 @@ export function NotificationPanel({
                   {/* Icon */}
                   <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-xs font-semibold text-primary">
-                          {job.type === "vc" ? "VC" : job.type === "nr" ? "NR" : job.type === "ae" ? "AE" : job.type.toUpperCase()}
+                      {job.type === "vc"
+                        ? "VC"
+                        : job.type === "nr"
+                          ? "NR"
+                          : job.type === "ae"
+                            ? "AE"
+                            : job.type.toUpperCase()}
                     </span>
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {job.input.fileName || "Untitled"}
+                      {job.output?.savedFileName ||
+                        job.input.fileName ||
+                        "Untitled"}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       {getStatusIcon(job.status)}

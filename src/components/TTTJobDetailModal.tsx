@@ -92,7 +92,7 @@ export function TTTJobDetailModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `translation_${currentJobData?.jobId}.txt`;
+    a.download = `${(currentJobData?.output?.savedFileName || currentJobData?.input.fileName || `translation_${currentJobData?.jobId}`).replace(/\.[^/.]+$/, "")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -134,10 +134,12 @@ export function TTTJobDetailModal({
       return;
     }
 
+    const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJobData.id, {
-      input: {
-        ...currentJobData.input,
-        fileName: saveFileName.trim() || `ttt_${currentJobData.jobId}`,
+      output: {
+        ...currentJobData.output,
+        translatedText: editedText || translatedText,
+        savedFileName: saveFileName.trim() || `ttt_${currentJobData.jobId}`,
       },
     });
 

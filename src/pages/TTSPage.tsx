@@ -32,7 +32,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { useNavigate } from "react-router-dom";
+import { Wand2, ShieldOff, Sparkles } from "lucide-react";
 
 interface AudioFile {
   name: string;
@@ -83,6 +89,8 @@ export function TTSPage() {
     autoPlayRef.current = autoPlay;
   }, [autoPlay]);
 
+  const navigate = useNavigate();
+  const setHandoffAudio = useJobStore((state) => state.setHandoffAudio);
   const { token } = useAuthStore();
   useSSESync(token);
 
@@ -347,13 +355,10 @@ export function TTSPage() {
     // Update filename and save blobs
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJob.id, {
-      input: {
-        ...currentJob.input,
-        fileName: saveFileName.trim() || `tts_${currentJob.jobId}`,
-      },
       output: {
         ...currentJob.output,
         audioBlobs: audioFiles.map((f) => f.blob),
+        savedFileName: saveFileName.trim() || `tts_${currentJob.jobId}`,
       },
     });
 
@@ -368,15 +373,32 @@ export function TTSPage() {
     setSaveFileName("");
   };
 
+  const handleSendToAudioTools = (subFeature: "vc" | "nr" | "ae") => {
+    if (audioFiles.length === 0) return;
+    const currentAudio = audioFiles[currentAudioIndex];
+    const savedName =
+      currentJob?.output?.savedFileName || currentJob?.input.fileName;
+    const baseName = savedName ? savedName.replace(/\.[^/.]+$/, "") : "audio";
+    const fileName =
+      audioFiles.length > 1
+        ? `${baseName}_segment_${currentAudioIndex + 1}.wav`
+        : `${baseName}.wav`;
+    setHandoffAudio({
+      blob: currentAudio.blob,
+      fileName,
+      subFeature,
+    });
+    navigate("/audio-tools");
+  };
+
   const handleDownload = async () => {
     if (audioFiles.length === 0) return;
 
     if (audioFiles.length === 1) {
-      // Single file — direct download
       const file = audioFiles[0];
       const a = document.createElement("a");
       a.href = file.url;
-      a.download = file.name;
+      a.download = `${(currentJob?.output?.savedFileName || currentJob?.input.fileName || `tts_${currentJobId}`).replace(/\.[^/.]+$/, "")}.wav`;
       a.click();
       return;
     }
@@ -393,7 +415,8 @@ export function TTSPage() {
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tts_${currentJobId}_audio.zip`;
+    a.download = `${(currentJob?.output?.savedFileName || currentJob?.input.fileName || `tts_${currentJobId}`).replace(/\.[^/.]+$/, "")}.zip`;
+
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -456,22 +479,64 @@ export function TTSPage() {
   }, [currentJob, currentJobId]);
 
   const settingsContent = (
-    <TTSSettings
-      selectedLanguage={selectedLanguage}
-      selectedModel={selectedModel}
-      device={device}
-      enhance={enhance}
-      description={description}
-      onLanguageChange={setSelectedLanguage}
-      onModelChange={setSelectedModel}
-      onDeviceChange={setDevice}
-      onEnhanceChange={setEnhance}
-      onDescriptionChange={setDescription}
-    />
+    <div className="space-y-4">
+      <TTSSettings
+        selectedLanguage={selectedLanguage}
+        selectedModel={selectedModel}
+        device={device}
+        enhance={enhance}
+        description={description}
+        onLanguageChange={setSelectedLanguage}
+        onModelChange={setSelectedModel}
+        onDeviceChange={setDevice}
+        onEnhanceChange={setEnhance}
+        onDescriptionChange={setDescription}
+      />
+
+      {/* Audio Tools chips — only show when audio is ready */}
+      {audioFiles.length > 0 && (
+        <div className="border-t pt-4 space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">
+            Continue with audio tools
+          </p>
+          <div className="flex flex-col gap-2">
+            {[
+              {
+                id: "vc" as const,
+                label: "Voice Clone",
+                icon: Wand2,
+                color: "text-purple-500",
+              },
+              {
+                id: "nr" as const,
+                label: "Noise Removal",
+                icon: ShieldOff,
+                color: "text-green-500",
+              },
+              {
+                id: "ae" as const,
+                label: "Audio Enhance",
+                icon: Sparkles,
+                color: "text-blue-500",
+              },
+            ].map((tool) => (
+              <button
+                key={tool.id}
+                onClick={() => handleSendToAudioTools(tool.id)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-input hover:bg-accent transition-colors cursor-pointer text-sm"
+              >
+                <tool.icon className={`h-4 w-4 ${tool.color}`} />
+                <span>{tool.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 
   const inputContent = (
-  <div className="h-full p-5 flex flex-col justify-center">
+    <div className="h-full p-5 flex flex-col justify-center">
       <TextInput
         boxes={boxes}
         onBoxesChange={setBoxes}
@@ -633,9 +698,7 @@ export function TTSPage() {
                                 <span className="text-muted-foreground">
                                   Model:
                                 </span>
-                                <span>
-                                  {currentJob?.input.params?.model}
-                                </span>
+                                <span>{currentJob?.input.params?.model}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
@@ -743,7 +806,10 @@ export function TTSPage() {
                 )}
 
                 <span className="text-xs text-muted-foreground truncate">
-                  {audioFiles[currentAudioIndex]?.name}
+                  {currentJob?.output?.savedFileName ||
+                  currentJob?.input.fileName
+                    ? `${(currentJob?.output?.savedFileName || currentJob?.input.fileName || "").replace(/\.[^/.]+$/, "")}.wav`
+                    : audioFiles[currentAudioIndex]?.name}
                 </span>
               </div>
             </div>

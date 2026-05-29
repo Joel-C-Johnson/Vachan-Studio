@@ -210,9 +210,9 @@ export function TTSJobDetailModal({
 
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJobData.id, {
-      input: {
-        ...currentJobData.input,
-        fileName: saveFileName.trim() || `tts_${currentJobData.jobId}`,
+      output: {
+        ...currentJobData.output,
+        savedFileName: saveFileName.trim() || `tts_${currentJobData.jobId}`,
       },
     });
 
@@ -229,27 +229,31 @@ export function TTSJobDetailModal({
   const handleDownload = async () => {
     if (audioFiles.length === 0) return;
 
+    const savedName = (
+      currentJobData?.output?.savedFileName ||
+      currentJobData?.input.fileName ||
+      `tts_${currentJobData?.jobId}`
+    ).replace(/\.[^/.]+$/, "");
+
     if (audioFiles.length === 1) {
       const file = audioFiles[0];
       const a = document.createElement("a");
       a.href = file.url;
-      a.download = file.name;
+      a.download = `${savedName}.wav`;
       a.click();
       return;
     }
 
     const JSZip = (await import("jszip")).default;
     const zip = new JSZip();
-
     audioFiles.forEach((file) => {
       zip.file(file.name, file.blob);
     });
-
     const zipBlob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tts_audio.zip`;
+    a.download = `${savedName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -531,7 +535,10 @@ export function TTSJobDetailModal({
                   )}
 
                   <span className="text-xs text-muted-foreground truncate">
-                    {audioFiles[currentIndex]?.name}
+                    {currentJobData?.output?.savedFileName ||
+                    currentJobData?.input.fileName
+                      ? `${(currentJobData?.output?.savedFileName || currentJobData?.input.fileName || "").replace(/\.[^/.]+$/, "")}.wav`
+                      : audioFiles[currentIndex]?.name}
                   </span>
                 </div>
               </div>

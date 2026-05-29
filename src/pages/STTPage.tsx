@@ -179,12 +179,11 @@ export function STTPage() {
 
     const updateJob = useJobStore.getState().updateJob;
     updateJob(currentJob.id, {
-      input: {
-        ...currentJob.input,
-        fileName: saveFileName.trim() || `stt_${currentJob.jobId}`,
+      output: {
+        ...currentJob.output,
+        savedFileName: saveFileName.trim() || `stt_${currentJob.jobId}`,
       },
     });
-
     const toggleJobSavedStore = useJobStore.getState().toggleJobSaved;
     await toggleJobSavedStore(currentJob.id);
     setIsSaving(false);
@@ -505,7 +504,7 @@ export function STTPage() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement("a");
                           a.href = url;
-                          a.download = `${currentJob?.input.fileName || `transcription_${currentJobId}`}.txt`;
+                          a.download = `${(currentJob?.output?.savedFileName || currentJob?.input.fileName || `transcription_${currentJobId}`).replace(/\.[^/.]+$/, "")}.txt`;
                           a.click();
                           URL.revokeObjectURL(url);
                         }}
