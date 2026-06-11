@@ -88,22 +88,22 @@ const SUB_FEATURES = [
 const SPEAKERS = [
   {
     value: "speaker_1_hin_female",
-    label: "Speaker 1 - Hindi Female",
+    label: "Speaker 1 Female",
     audio: "/speakers/speaker_1_hin_female.mp3",
   },
   {
     value: "speaker_2_hin_female",
-    label: "Speaker 2 - Hindi Female",
+    label: "Speaker 2 Female",
     audio: "/speakers/speaker_2_hin_female.mp3",
   },
   {
     value: "speaker_3_tam_male",
-    label: "Speaker 3 - Tamil Male",
+    label: "Speaker 3 Male",
     audio: "/speakers/speaker_3_tam_male.mp3",
   },
   {
     value: "speaker_4_tel_male",
-    label: "Speaker 4 - Telugu Male",
+    label: "Speaker 4 Male",
     audio: "/speakers/speaker_4_tel_male.mp3",
   },
 ];

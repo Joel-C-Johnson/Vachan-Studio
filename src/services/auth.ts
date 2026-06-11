@@ -1,6 +1,6 @@
 import { API_BASE_URL_AUTH } from "@/config/constants";
 
-const TTL_SECONDS = 1800; // 30 minutes
+const TTL_SECONDS = 3600; // 1 hr
 
 const ALL_SCOPES = [
   "stt",

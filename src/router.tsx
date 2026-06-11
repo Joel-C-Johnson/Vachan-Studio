@@ -8,6 +8,7 @@ import { TTSPage } from "./pages/TTSPage";
 import { TTTPage } from "./pages/TTTPage";
 import { STSPage } from "./pages/STSPage";
 import { AudioToolsPage } from "./pages/AudioToolsPage";
+import { APIExplorerPage } from "./pages/APIExplorerPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -38,6 +39,10 @@ export const router = createBrowserRouter([
       {
         path: "/audio-tools",
         element: <ProtectedRoute><AudioToolsPage /></ProtectedRoute>,
+      },
+      {
+        path: "/api-explorer",
+        element: <ProtectedRoute><APIExplorerPage /></ProtectedRoute>,
       },
     ],
   },

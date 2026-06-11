@@ -251,7 +251,7 @@ export function AudioInput({
 
         if (audioBlob.size < 25000) {
           toast.error(
-            "Recording is too short. Please record at least 1 second of audio.",
+            "Recording is too short. Please record a longer audio clip.",
           );
           stream.getTracks().forEach((track) => track.stop());
           return;

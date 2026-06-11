@@ -2,7 +2,7 @@
 
 import { useOutletContext } from "react-router-dom";
 import { FeatureCard } from "../components/FeatureCard";
-import { Mic, Volume2, Languages, Waves, Sparkles } from "lucide-react";
+import { Mic, Volume2, Languages, Waves, Sparkles, Code2 } from "lucide-react";
 
 interface OutletContext {
   onFeatureClick: (feature: string) => void;
@@ -46,6 +46,13 @@ export function HomePage() {
       title: "Audio Tools",
       description: "Voice cloning, noise removal and audio enhancement powered by AI.",
       iconColor: "bg-amber-500",
+    },
+    {
+      id: "api-explorer",
+      icon: Code2,
+      title: "API Explorer",
+      description: "Explore job status, job history and served models via the Vachan AI APIs.",
+      iconColor: "bg-teal-500",
     },
   ];
 
