@@ -114,7 +114,7 @@ const MODEL_NAMES: Record<SubFeature, string> = {
   ae: "resemble-enhance",
 };
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 
 export function AudioToolsPage() {
   const navigate = useNavigate();
@@ -421,7 +421,7 @@ export function AudioToolsPage() {
 
     if (currentState.selectedFile.size > MAX_FILE_SIZE) {
       toast.error(
-        `File size exceeds 1MB limit (${(currentState.selectedFile.size / 1024 / 1024).toFixed(2)}MB)`,
+        `File size exceeds 3MB limit (${(currentState.selectedFile.size / 1024 / 1024).toFixed(2)}MB)`,
       );
       return;
     }
@@ -749,7 +749,7 @@ export function AudioToolsPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         if (file.size > MAX_FILE_SIZE) {
-                          toast.error(`File size exceeds 1MB limit`);
+                          toast.error(`File size exceeds 3MB limit`);
                           return;
                         }
                         setReferenceAudio(file);
@@ -763,7 +763,7 @@ export function AudioToolsPage() {
                     htmlFor="ref-audio-input"
                     className="w-full flex items-center justify-center p-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors text-sm text-muted-foreground"
                   >
-                    Click to upload reference audio (max 1MB)
+                    Click to upload reference audio (max 3MB)
                   </label>
                 </div>
               )}
