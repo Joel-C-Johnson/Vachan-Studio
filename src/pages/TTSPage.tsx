@@ -438,7 +438,7 @@ export function TTSPage() {
     boxes.reduce(
       (sum, t) => sum + (t.trim() === "" ? 0 : t.trim().split(/\s+/).length),
       0,
-    ) > 30;
+    ) > 50;
 
   const canSubmit =
     !isSubmitting &&

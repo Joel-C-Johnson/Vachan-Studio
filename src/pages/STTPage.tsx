@@ -10,6 +10,8 @@ import { STTSettings } from "@/components/STTSettings";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { aiEngineService } from "@/services/aiEngine";
+import { supportsTimestamp } from "@/utils/modelHelpers";
+
 import {
   Loader2,
   Copy,
@@ -255,12 +257,14 @@ export function STTPage() {
 
     try {
       // Submit job to API
+      const modelHasTimestamp = supportsTimestamp(selectedModel);
       const jobId = await aiEngineService.submitSTTJob(selectedFile, {
         model_name: selectedModel,
         transcription_language: selectedLanguage,
         device: device,
-        generate_timestamp: generateTimestamp,
-        timestamp_file_format: generateTimestamp ? timestampFormat : undefined,
+        generate_timestamp: modelHasTimestamp ? generateTimestamp : false,
+        timestamp_file_format:
+          modelHasTimestamp && generateTimestamp ? timestampFormat : undefined,
       });
 
       console.log("Job submitted successfully! Job ID:", jobId);

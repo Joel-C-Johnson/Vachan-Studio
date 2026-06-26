@@ -154,6 +154,26 @@ class AuthService {
       throw new Error(error.detail || "Failed to reset password");
     }
   }
+
+  async deleteApiKey(
+    apiKey: string,
+    sessionToken: string,
+  ): Promise<void> {
+    try {
+      await fetch(
+        `${API_BASE_URL_AUTH}/auth/user/keys?api_key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        },
+      );
+    } catch {
+      // Silently fail — logout should proceed regardless
+    }
+  }
 }
 
 export const authService = new AuthService();

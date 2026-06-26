@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useJobStore } from "@/store/jobStore";
 import { deleteUnsavedJobs, dismissAllJobs } from "@/services/indexedDB";
 import { toast } from "sonner";
+import { authService } from "@/services/auth";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export function Layout() {
   const [pendingFeature, setPendingFeature] = useState<string | null>(null);
 
   // Use auth store
-  const { isAuthenticated, login, setApiKey, logout } = useAuthStore();
+  const { isAuthenticated, login, setApiKey, logout, token, apiKey  } = useAuthStore();
 
   const handleLoginSuccess = async (
     newToken: string,
@@ -44,6 +45,11 @@ export function Layout() {
 
   const handleLogout = async () => {
     try {
+      // Delete API key from backend
+      if (apiKey && token) {
+        await authService.deleteApiKey(apiKey, token);
+      }
+      
       // Mark all jobs as dismissed (hide from notifications)
       await dismissAllJobs();
 
