@@ -1,5 +1,5 @@
 # Vachan Studio
-Vachan Studio is a React-based web app showcasing BCS's AI-powered speech and language APIs — featuring Audio Transcription, Audio Generation, Text Translation, Audio Translation, and Audio Tools with real-time job updates.
+Vachan Studio is a React-based web app showcasing BCS's AI-powered speech and language APIs - featuring Audio Transcription, Audio Generation, Text Translation, Audio Translation, and Audio Tools with real-time job updates.
 
 ## Features
 - **Audio Transcription** — Convert audio to text using AI-powered speech recognition with word-level timestamp support
