@@ -1,4 +1,4 @@
-export const APP_NAME = 'Vachan AI Playground';
+export const APP_NAME = 'Vachan Studio';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export const API_BASE_URL_AUTH = import.meta.env.VITE_API_BASE_URL_AUTH;

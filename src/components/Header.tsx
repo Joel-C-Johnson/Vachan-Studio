@@ -69,7 +69,7 @@ export function Header({
             </span>
           </div>
           <div>
-            <h1 className="text-lg font-semibold">Vachan AI Playground</h1>
+            <h1 className="text-lg font-semibold">Vachan Studio</h1>
             <p className="text-xs text-muted-foreground">AI Feature Showcase</p>
           </div>
         </div>

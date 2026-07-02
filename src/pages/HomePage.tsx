@@ -60,7 +60,7 @@ export function HomePage() {
     <div className="min-h-screen pt-16">
       <div className="container mx-auto px-6 py-16 text-center">
         <h1 className="text-5xl font-bold mb-4">
-          Welcome to Vachan AI Playground
+          Welcome to Vachan Studio
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Transform your communication with cutting-edge AI-powered speech and language technologies

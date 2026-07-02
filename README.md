@@ -1,1 +1,1 @@
-# Vachan AI Playground
+# Vachan Studio
