@@ -511,7 +511,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <div>
                 <h2 className="text-xl font-semibold">Vachan Studio</h2>
                 <p className="text-sm text-muted-foreground font-normal">
-                  AI Feature Showcase by BCS
+                  Explore AI Feature by BCS
                 </p>
               </div>
             </div>
@@ -575,7 +575,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <div className="space-y-2">
                 <h3 className="font-semibold">About</h3>
                 <p className="text-sm text-muted-foreground">
-                  Vachan Studio is a showcase platform for BCS's AI-powered speech and
+                  Vachan Studio is a interactive platform for BCS's AI-powered speech and
                   language APIs. Built to help developers explore, test, and
                   integrate state-of-the-art multilingual AI models including
                   speech recognition, text-to-speech, text translation, and

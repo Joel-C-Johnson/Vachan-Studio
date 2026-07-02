@@ -70,7 +70,7 @@ export function Header({
           </div>
           <div>
             <h1 className="text-lg font-semibold">Vachan Studio</h1>
-            <p className="text-xs text-muted-foreground">AI Feature Showcase</p>
+            <p className="text-xs text-muted-foreground">Explore AI Features</p>
           </div>
         </div>
 
